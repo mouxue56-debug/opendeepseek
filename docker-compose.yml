@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  hermes-agent:
+    image: nousresearch/hermes-agent:latest
+    container_name: opendeepseek-hermes
+    ports:
+      - "8642:8642"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - HERMES_MODEL=deepseek-chat
+      - API_SERVER_ENABLED=true
+      - API_SERVER_KEY=${HERMES_API_KEY:-opendeepseek-secret}
+      - API_SERVER_PORT=8642
+      - API_SERVER_HOST=0.0.0.0
+    volumes:
+      - hermes-data:/root/.hermes
+      - ./skills:/root/.hermes/skills:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8642/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: opendeepseek-webui
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://hermes-agent:8642/v1
+      - OPENAI_API_KEY=${HERMES_API_KEY:-opendeepseek-secret}
+      - WEBUI_NAME=OpenDeepSeek
+      - WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:-opendeepseek-webui-secret}
+    volumes:
+      - open-webui-data:/app/backend/data
+    depends_on:
+      - hermes-agent
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  hermes-data:
+  open-webui-data:
+
+networks:
+  default:
+    name: opendeepseek-network

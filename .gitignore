@@ -1,0 +1,23 @@
+# 环境配置
+.env
+.env.local
+
+# Docker 数据
+docker-data/
+
+# OS 文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Skills 本地自定义
+skills/custom/
+
+# 日志
+*.log
+
+# 临时文件
+tmp/
