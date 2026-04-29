@@ -142,5 +142,21 @@ d8039e2 — debug round 5: add 'command: gateway run' to hermes service in docke
 - hermes + open-webui 均 healthy ✅
 
 ### Commit
-（本轮 commit）
+4dbd54a — debug round 7: fix searxng image tag and port conflict
+
+## Round 8 - 容器间网络互通验证 (status: PASS)
+
+### 发现
+- 无问题：容器间 DNS 和网络完全正常
+
+### 验证
+- `docker compose exec open-webui curl -s http://hermes:8642/health` → `{"status": "ok", "platform": "hermes-agent"}`
+- `docker compose exec open-webui curl http://hermes:8642/v1/models` → 返回 401 Invalid API key（DNS 解析正确，连接正常，认证失败是预期行为）
+- opendeepseek-network bridge 网络，服务 DNS alias 均正常
+
+### 修复
+- 无新修复
+
+### Commit
+- 无新 commit（无变更）
 
