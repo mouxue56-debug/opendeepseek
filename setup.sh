@@ -197,8 +197,10 @@ EOF
 else
     # Read existing values for display
     if [[ -f "$ENV_FILE" ]]; then
-        DEFAULT_MODEL=$(grep "^DEFAULT_MODEL=" "$ENV_FILE" | cut -d'=' -f2 || echo "deepseek-v4-flash")
-        ENABLE_CHINA_MODE=$(grep "^ENABLE_CHINA_MODE=" "$ENV_FILE" | cut -d'=' -f2 || echo "false")
+        DEFAULT_MODEL=$(grep "^DEFAULT_MODEL=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
+        DEFAULT_MODEL="${DEFAULT_MODEL:-deepseek-v4-flash}"
+        ENABLE_CHINA_MODE=$(grep "^ENABLE_CHINA_MODE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
+        ENABLE_CHINA_MODE="${ENABLE_CHINA_MODE:-false}"
     fi
 fi
 

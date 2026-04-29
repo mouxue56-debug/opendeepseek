@@ -26,3 +26,22 @@
 ### 下一轮关注
 - setup.sh 语法检查，特别是 macOS 兼容性
 
+## Round 2 - 静态校验 setup.sh (status: PASS with fix)
+
+### 发现
+- `bash -n setup.sh` 语法正确
+- shellcheck 未安装，跳过
+- macOS bash 3.2 兼容性：`seq`/`openssl`/`base64`/`read -rsp` 均兼容
+- SKIP_CONFIG 分支读取 .env 时，`grep | cut` 管道：grep 返回空时 cut 还是 exit 0，导致 `|| echo "fallback"` 永不触发；若 .env 中 value 有 trailing space，`[[ "true  " == "true" ]]` 也会误判
+- TOTAL=6 与实际 progress 调用数匹配（SKIP_CONFIG 分支少一次 progress 导致显示跳号，但不影响功能）
+
+### 修复
+- 改 setup.sh SKIP_CONFIG 分支 grep/cut，加 `tr -d '[:space:]'` 去除尾随空格，改用 `${var:-fallback}` 替代 `|| echo` 确保 fallback 生效
+
+### 验证
+- `bash -n setup.sh` 输出 syntax OK
+
+### 下一轮关注
+- docs/ 文档完整性和内部链接
+
+
