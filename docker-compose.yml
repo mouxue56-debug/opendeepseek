@@ -14,7 +14,7 @@ services:
     environment:
       - OPENAI_API_KEY=${DEEPSEEK_API_KEY}
       - OPENAI_API_BASE_URL=https://api.deepseek.com/v1
-      - DEFAULT_MODEL=deepseek/deepseek-v4-flash
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek/deepseek-v4-flash}
       - API_SERVER_ENABLED=true
       - API_SERVER_KEY=${HERMES_API_KEY}
       - API_SERVER_PORT=8642

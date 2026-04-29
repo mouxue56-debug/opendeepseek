@@ -62,7 +62,7 @@ cd opendeepseek
 cp .env.example .env
 # 编辑 .env，填入 DEEPSEEK_API_KEY
 docker compose up -d
-# 访问 http://localhost:8080
+# 访问 http://localhost:3000
 ```
 
 ## 核心特性

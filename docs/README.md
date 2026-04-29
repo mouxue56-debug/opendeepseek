@@ -24,7 +24,7 @@ cp .env.example .env
 docker compose up -d
 
 # 3. 访问 Web UI
-open http://localhost:8080
+open http://localhost:3000
 ```
 
 ## 特性
@@ -46,7 +46,7 @@ open http://localhost:8080
 
 - [安装指南](docs/INSTALL.md)
 - [常见问题](docs/FAQ.md)
-- [Tailscale 配置](docs/TAILSCALE.md)
+- [中国网络优化](docs/CHINA-NETWORK.md)
 
 ## 许可证
 
