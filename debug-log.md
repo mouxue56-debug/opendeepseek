@@ -64,5 +64,26 @@
 ### 下一轮关注
 - setup.sh 干跑测试，验证 .env 生成正确
 
+## Round 4 - setup.sh 干跑测试 (status: PASS)
+
+### 发现
+- `bash -n setup.sh` 语法正确
+- 使用 mock docker（TMPBIN stub）绕过真实 docker 调用
+- 6 个 Phase 全部通过，.env 正确生成
+- 所有变量正确写入：DEEPSEEK_API_KEY / DEFAULT_MODEL / HERMES_API_KEY / WEBUI_SECRET_KEY / ENABLE_CHINA_MODE
+- Health check loop 如期 warn（mock docker 无真实容器），不影响脚本整体
+- 无新 bug 发现
+
+### 修复
+- 无新修复
+
+### 验证
+- `printf "sk-test-...\n1\nY\nN\n" | PATH=<mock>:$PATH bash setup.sh` 完整跑通
+- .env 包含所有 5 个必需变量 ✅
+
+### 下一轮关注
+- 真 docker compose up -d 启动核心服���
+
+
 
 
