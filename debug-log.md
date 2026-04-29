@@ -82,8 +82,27 @@
 - .env 包含所有 5 个必需变量 ✅
 
 ### 下一轮关注
-- 真 docker compose up -d 启动核心服���
+- 真 docker compose up -d 启动核心服务
 
+## Round 5 - 真 docker compose up 启动核心服务 (status: PASS with fix)
 
+### 发现
+- hermes 容器健康检查用 `CMD curl`，但 nousresearch/hermes-agent:v2026.4.23 镜像内**没有** curl
+- 健康检查日志：`exec: "curl": executable file not found in $PATH`
+- 由于 open-webui depends_on hermes `service_healthy`，hermes 始终 unhealthy → open-webui 无法启动
+- 注：`command: gateway run` 已在此前未提交 diff 中修复（确保 hermes 以 API gateway 模式启动）
 
+### 修复
+- docker-compose.yml healthcheck 从 `CMD curl -f ...` 改为 `CMD-SHELL python3 -c "import urllib.request; urllib.request.urlopen(...)"` 原因：hermes 镜像无 curl，但有 python3（aiohttp 3.13.5 基础镜像）
+- 同时提交 `command: gateway run` 修复
+
+### 验证
+- `docker compose up -d` 成功，hermes 状态 `healthy`，open-webui 状态 `healthy`
+- `curl http://localhost:8642/health` → `{"status": "ok", "platform": "hermes-agent"}`
+- `curl http://localhost:3000` → 200 HTML
+- `docker compose ps` 两服务均 Up
+
+### Commit
+d8039e2 — debug round 5: add 'command: gateway run' to hermes service in docker-compose.yml
+（下一 commit 含 healthcheck 修复）
 

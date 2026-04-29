@@ -48,7 +48,7 @@ services:
     volumes:
       - hermes-data:/opt/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8642/health"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8642/health')\" 2>/dev/null || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
