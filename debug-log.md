@@ -177,5 +177,22 @@ a89c167 — debug round 8: container networking PASS
 - hermes health: 就绪 ✅，Open WebUI: 就绪 ✅
 
 ### Commit
-（本轮 commit）
+05f9095 — debug round 9: setup.sh SKIP_CONFIG path PASS
+
+## Round 10 - 综合 review + debug-summary.md (status: PASS)
+
+### 发现
+- 回顾 9 轮 commit history，共发现 11 个 bug，全部修复
+- git status 干净，无未提交变更
+- smoke-test 7/7 PASS
+
+### 修复
+- 无新修复
+
+### 验证
+- `git log --oneline` 显示 10 个 debug 相关 commit
+- `git status` clean ✅
+
+### Commit
+debug round 10: summary
 
