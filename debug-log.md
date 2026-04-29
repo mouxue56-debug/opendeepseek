@@ -158,5 +158,24 @@ d8039e2 — debug round 5: add 'command: gateway run' to hermes service in docke
 - 无新修复
 
 ### Commit
-- 无新 commit（无变更）
+a89c167 — debug round 8: container networking PASS
+
+## Round 9 - setup.sh 重跑路径（SKIP_CONFIG）(status: PASS)
+
+### 发现
+- `printf "N\n" | bash setup.sh` 正确走 SKIP_CONFIG 分支
+- 输出 "保留现有配置，跳过配置阶段"，步骤编号连续（1-5/6，跳过 .env 生成 progress）
+- ENABLE_CHINA_MODE=true 触发 `--profile full` 启动（含 SearXNG）
+- 所有服务正常启动，health check 通过
+- Tailscale IP 正确显示（脚本探测 tailscale ip 成功）
+
+### 修复
+- 无新修复
+
+### 验证
+- `printf "N\n" | bash setup.sh` 完整跑通，3 个容器全部启动 ✅
+- hermes health: 就绪 ✅，Open WebUI: 就绪 ✅
+
+### Commit
+（本轮 commit）
 
