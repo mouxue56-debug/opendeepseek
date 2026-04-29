@@ -67,6 +67,9 @@ ok "Docker Compose 可用"
 # ============================================================
 progress "配置参数..."
 
+info "默认采用'家庭单用户模式'：访问 http://localhost:3000 无需注册即可使用"
+info "如需团队多用户模式（含登录注册），稍后选择部署模式时选 2"
+
 ENV_FILE=".env"
 if [[ -f "$ENV_FILE" ]]; then
     warn "检测到已存在的 .env 文件"
@@ -129,7 +132,25 @@ if [[ -z "$SKIP_CONFIG" ]]; then
         info "中文优化模式: 未启用"
     fi
 
-    # 4. IM placeholder
+    # 4. Deploy mode
+    echo ""
+    info "选择部署模式："
+    echo "  1) 家庭单用户（推荐，零登录门槛）"
+    echo "  2) 团队多用户（需注册管理员账号）"
+    read -rp "请输入选项 [1/2，默认 1]: " DEPLOY_MODE_CHOICE
+    case "${DEPLOY_MODE_CHOICE:-1}" in
+        2)
+            WEBUI_AUTH="true"
+            DEPLOY_MODE_LABEL="团队多用户"
+            ;;
+        *)
+            WEBUI_AUTH="false"
+            DEPLOY_MODE_LABEL="家庭单用户"
+            ;;
+    esac
+    ok "部署模式: ${DEPLOY_MODE_LABEL}"
+
+    # 5. IM placeholder
     echo ""
     info "OpenDeepSeek 支持把 Agent 接入钉钉/飞书/企微/邮件/QQ Bot/Matrix"
     info "（需要后续在 .env 里配置 Bot Token）"
@@ -172,6 +193,9 @@ WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY}
 
 # 中文优化模式
 ENABLE_CHINA_MODE=${ENABLE_CHINA_MODE}
+
+# 部署模式（家庭模式 false 跳过登录；团队模式 true 启用 RBAC）
+WEBUI_AUTH=${WEBUI_AUTH}
 EOF
 
     if [[ "$ADD_IM_PLACEHOLDER" -eq 1 ]]; then
@@ -201,6 +225,8 @@ else
         DEFAULT_MODEL="${DEFAULT_MODEL:-deepseek-v4-flash}"
         ENABLE_CHINA_MODE=$(grep "^ENABLE_CHINA_MODE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
         ENABLE_CHINA_MODE="${ENABLE_CHINA_MODE:-false}"
+        WEBUI_AUTH=$(grep "^WEBUI_AUTH=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '[:space:]')
+        WEBUI_AUTH="${WEBUI_AUTH:-false}"
     fi
 fi
 
@@ -280,7 +306,11 @@ if command -v tailscale &>/dev/null; then
 fi
 
 echo ""
-echo -e "  ${YELLOW}首次访问需注册管理员账号${NC}"
+if [[ "${WEBUI_AUTH:-false}" == "false" ]]; then
+    echo -e "  ${CYAN}访问方式${NC}    无需登录，打开浏览器直接使用"
+else
+    echo -e "  ${YELLOW}首次访问需注册管理员账号${NC}"
+fi
 echo ""
 echo -e "${GREEN}──────────────────────────────────────────────────────${NC}"
 echo -e "${GREEN}常用命令${NC}"
@@ -291,3 +321,12 @@ echo "  停止服务      docker compose down"
 echo "  重启服务      docker compose restart"
 echo ""
 echo -e "${GREEN}══════════════════════════════════════════════════════${NC}"
+
+# 自动开浏览器（macOS / Linux）
+if command -v open &>/dev/null; then
+    info "自动打开浏览器..."
+    sleep 2 && open http://localhost:3000 &
+elif command -v xdg-open &>/dev/null; then
+    info "自动打开浏览器..."
+    sleep 2 && xdg-open http://localhost:3000 &>/dev/null &
+fi

@@ -2,6 +2,18 @@
 
 > 一键部署的本地 Agentic ChatGPT — DeepSeek V4 内核，中文优先，开箱即用
 
+## ⚡ 30 秒一键部署
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/opendeepseek/main/install.sh)
+```
+
+无需懂 Docker，自动检测系统 + 安装 + 启动 + 打开浏览器。**默认家庭模式**：访问 http://localhost:3000 直接对话，**不需要注册**。
+
+→ 详细各平台一键命令见 [docs/ONE-CLICK.md](docs/ONE-CLICK.md)
+
+---
+
 ## 这是什么
 
 OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理解成自己服务器上跑的 ChatGPT，但 Agent 能力是真实的（不是角色扮演）。它基于 DeepSeek V4 系列模型（价格是 GPT-4o 的 1/9），提供完整的中文体验，支持知识库、多模态、IM 桥接和后台任务调度。不需要写代码，不需要配环境，5 分钟就能跑起来。

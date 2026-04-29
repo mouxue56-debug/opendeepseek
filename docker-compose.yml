@@ -70,6 +70,18 @@ services:
       - DEFAULT_LOCALE=zh-CN
       - ENABLE_RAG_HYBRID_SEARCH=true
       - ENABLE_CODE_INTERPRETER=true
+      # ─── 小白模式：零门槛访问 ─────────────────────────
+      # WEBUI_AUTH=false 跳过登录（仅适合家庭单机/Tailscale 私有网络）
+      # 公网部署务必改为 true 并配反向代理
+      - WEBUI_AUTH=${WEBUI_AUTH:-false}
+      # 默认预选模型 ID（hermes 暴露的模型）
+      - DEFAULT_MODELS=${DEFAULT_MODELS_FRONTEND:-hermes-agent}
+      # 模型选择器置顶
+      - DEFAULT_PINNED_MODELS=hermes-agent
+      # 联网搜索默认启用（配合 SearXNG profile 使用）
+      - ENABLE_RAG_WEB_SEARCH=true
+      # SearXNG 后端（仅 --profile full 启用 SearXNG 时生效）
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
     volumes:
       - open-webui-data:/app/backend/data
     depends_on:
