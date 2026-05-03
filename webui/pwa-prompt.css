@@ -1,0 +1,221 @@
+/**
+ * OpenDeepSeek PWA prompt — neutral Open WebUI style.
+ */
+
+:root {
+  --ods-pwa-bg: rgba(255, 255, 255, 0.98);
+  --ods-pwa-border: #e5e5e5;
+  --ods-pwa-text: #171717;
+  --ods-pwa-muted: #5f6368;
+  --ods-pwa-accent: #10a37f;
+  --ods-pwa-accent-hover: #0d8f70;
+  --ods-pwa-radius: 12px;
+  --ods-pwa-shadow: 0 -8px 28px rgba(0, 0, 0, 0.10);
+}
+
+.dark {
+  --ods-pwa-bg: rgba(33, 33, 33, 0.98);
+  --ods-pwa-border: #3a3a3a;
+  --ods-pwa-text: #f4f4f4;
+  --ods-pwa-muted: #c7c7c7;
+}
+
+.ods-pwa-banner {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  z-index: 99999;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+  color: var(--ods-pwa-text);
+  background: var(--ods-pwa-bg);
+  border: 1px solid var(--ods-pwa-border);
+  border-radius: var(--ods-pwa-radius);
+  box-shadow: var(--ods-pwa-shadow);
+  box-sizing: border-box;
+  transform: translateY(calc(100% + 24px));
+  opacity: 0;
+  transition: transform 0.28s ease, opacity 0.24s ease;
+}
+
+.ods-pwa-banner--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.ods-pwa-banner--hiding {
+  transform: translateY(calc(100% + 24px));
+  opacity: 0;
+}
+
+.ods-pwa-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ods-pwa-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 10px;
+  background: #f1f1f2;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.dark .ods-pwa-icon {
+  background: #303030;
+}
+
+.ods-pwa-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ods-pwa-title {
+  margin: 0 0 3px;
+  color: var(--ods-pwa-text);
+  font-size: 0.94rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.ods-pwa-desc,
+.ods-pwa-step {
+  color: var(--ods-pwa-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.ods-pwa-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ods-pwa-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ods-pwa-step-icon,
+.ods-pwa-emoji-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background: var(--ods-pwa-accent);
+}
+
+.ods-pwa-step-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.ods-pwa-emoji-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
+.ods-pwa-emoji-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: #fff;
+}
+
+.ods-pwa-arrow {
+  color: var(--ods-pwa-muted);
+  font-size: 0.8rem;
+}
+
+.ods-pwa-highlight,
+.ods-pwa-link {
+  color: var(--ods-pwa-accent);
+  font-weight: 600;
+}
+
+.ods-pwa-link {
+  text-decoration: none;
+}
+
+.ods-pwa-link:hover {
+  text-decoration: underline;
+}
+
+.ods-pwa-install-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--ods-pwa-accent);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ods-pwa-install-btn:hover {
+  background: var(--ods-pwa-accent-hover);
+}
+
+.ods-pwa-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ods-pwa-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.ods-pwa-close:hover {
+  background: rgba(127, 127, 127, 0.12);
+  color: var(--ods-pwa-text);
+}
+
+.ods-pwa-arrow-down {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .ods-pwa-banner {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ods-pwa-inner {
+    gap: 10px;
+  }
+
+  .ods-pwa-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    font-size: 1.1rem;
+  }
+
+  .ods-pwa-install-btn {
+    padding: 7px 12px;
+  }
+}

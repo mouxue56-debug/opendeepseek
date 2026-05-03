@@ -1,0 +1,155 @@
+# OpenDeepSeek - docker-compose.yml
+# Project: OpenDeepSeek (一键部署本地 Agentic ChatGPT 替代品)
+# Version: v0.4.0 — 三层架构真正打通（Hermes 用 deepseek provider）
+# Architecture (默认): Open WebUI → Hermes Agent → DeepSeek API
+#                       (用户)        (Agent 内核)     (LLM)
+# Hermes Skills 全部活：Memory / Cron / Subagent / 16 IM 桥接 / Skills
+# Usage:
+#   docker compose up -d                          → 默认（含 Hermes Agent，普通用户）
+#   docker compose --profile full up -d            → 含 SearXNG 联网搜索
+# Network binding: 默认绑定 127.0.0.1（仅本机），跨网络访问请在 .env 设置 BIND_HOST=0.0.0.0
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════
+  # Hermes Agent v0.11 (Agent 内核 + DeepSeek LLM)
+  # 用 Hermes 原生 deepseek provider —— 通过 DEEPSEEK_API_KEY env 直接接 DeepSeek API
+  # 内核能力：Memory / Skills / Cron / Subagent / 16 IM 桥接
+  # ═══════════════════════════════════════════════════════════════════════
+  hermes:
+    image: nousresearch/hermes-agent:v2026.4.23
+    container_name: opendeepseek-hermes
+    command: gateway run
+    # 注：Hermes 镜像首次启动会生成 /opt/data/config.yaml，默认 model = anthropic/claude-opus-4.6
+    # OpenDeepSeek 的 setup.sh 在 healthy 后会自动修复为 deepseek-v4-flash + restart
+    # 见 scripts/hermes-fix-model.sh
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8642:8642"
+    environment:
+      # 🔴 关键：用 Hermes 原生 deepseek provider（不是 custom/openrouter）
+      - "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
+      - HERMES_INFERENCE_PROVIDER=deepseek
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek-v4-flash}
+      # API Server（暴露给 Open WebUI 当 model backend）
+      - API_SERVER_ENABLED=true
+      - "API_SERVER_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
+      - API_SERVER_PORT=8642
+      - API_SERVER_HOST=0.0.0.0
+      # ── 真 Agent 模式：Hermes terminal/file 工具默认在 /host 下工作 ──
+      # 默认 setup.sh / onboarding 会把 HERMES_HOST_DIR 写成用户家目录。
+      # 如需收窄权限，可在 .env 改成某个专用文件夹，例如 HERMES_HOST_DIR=./agent-files
+      - TERMINAL_ENV=local
+      - TERMINAL_CWD=/host
+      # ── IM Bridge Integrations (uncomment as needed) ──
+      # DingTalk
+      # - DINGTALK_CLIENT_ID=
+      # - DINGTALK_CLIENT_SECRET=
+      # Feishu / Lark
+      # - FEISHU_APP_ID=
+      # - FEISHU_APP_SECRET=
+      # WeCom
+      # - WECOM_BOT_ID=
+      # - WECOM_BOT_SECRET=
+      # Email
+      # - EMAIL_ADDRESS=
+      # - EMAIL_PASSWORD=
+      # - EMAIL_IMAP_HOST=
+      # - EMAIL_SMTP_HOST=
+      # QQ Bot
+      # - QQ_APP_ID=
+      # - QQ_CLIENT_SECRET=
+      # Matrix
+      # - MATRIX_HOMESERVER=
+      # - MATRIX_ACCESS_TOKEN=
+      # - MATRIX_USER_ID=
+      # Webhook
+      # - WEBHOOK_ENABLED=false
+      # - WEBHOOK_PORT=8080
+    volumes:
+      - hermes-data:/opt/data
+      # 真 Agent 文件系统入口：容器内访问 /host/Desktop、/host/Documents 等。
+      # 注意：HERMES_HOST_DIR 指向的目录会被 Hermes Agent 读写；不要在无认证公网暴露本服务。
+      - ${HERMES_HOST_DIR:-./agent-files}:/host:rw
+      # OpenDeepSeek 默认演示 skills：让首屏 demo 真能照着流程执行。
+      - ./hermes/skills:/opt/data/skills/opendeepseek:ro
+      # 🎭 OpenDeepSeek 自定义 AI persona（自报身份 + 能力清单 + 模型路由建议）
+      # 改这个文件可以重塑 AI 行为；删除可恢复 Hermes 默认 persona
+      - ./hermes/SOUL.md:/opt/data/SOUL.md:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8642/health')\" 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - opendeepseek-network
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # Open WebUI v0.9.2 (用户界面)
+  # 把 Hermes Gateway 当作 OpenAI 兼容的"模型后端"调用
+  # ═══════════════════════════════════════════════════════════════════════
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:0.9.2
+    container_name: opendeepseek-webui
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:3000:8080"
+    environment:
+      # 🔴 关键：把 Hermes 当 OpenAI 兼容模型源（不是直连 DeepSeek）
+      - OPENAI_API_BASE_URL=http://hermes:8642/v1
+      - "OPENAI_API_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
+      - WEBUI_NAME=OpenDeepSeek
+      - "WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?Missing required: WEBUI_SECRET_KEY (run ./setup.sh)}"
+      - DEFAULT_LOCALE=zh-CN
+      - ENABLE_RAG_HYBRID_SEARCH=true
+      - ENABLE_CODE_INTERPRETER=true
+      # ─── 小白模式：零门槛访问 ─────────────────────────
+      # WEBUI_AUTH=false 跳过登录（仅适合家庭单机/Tailscale 私有网络）
+      # 公网部署务必改为 true 并配反向代理
+      - WEBUI_AUTH=${WEBUI_AUTH:-false}
+      # 默认预选模型（Hermes 暴露的 model id 是 hermes-agent）
+      - DEFAULT_MODELS=${DEFAULT_MODELS_FRONTEND:-hermes-agent}
+      - DEFAULT_PINNED_MODELS=hermes-agent
+      # 中文默认建议卡片：避免 Open WebUI 首屏残留英文模板
+      - 'DEFAULT_PROMPT_SUGGESTIONS=[{"title":["整理我的桌面","真 Agent 文件系统演示"],"content":"请查看 /host/Desktop，但不要移动或删除任何文件。先按类型总结我的桌面有什么，再给我一个整理方案，并把方案写到 /host/OpenDeepSeek-Outputs/desktop-cleanup-plan.md"},{"title":["生成一个网页","一分钟做出可打开作品"],"content":"请在 /host/OpenDeepSeek-Outputs/site 里生成一个单文件中文个人主页 index.html，主题是「我用 DeepSeek V4 + Hermes 做个人 AI 助理」。要求手机端好看，可直接打开。"},{"title":["做一份视频文案","把乱语音变成爆款逻辑"],"content":"我会粘贴一段语音转录。请把它整理成 3 分钟中文视频脚本：开头钩子、痛点、解决方案、演示镜头、结尾号召，并保存到 /host/OpenDeepSeek-Outputs/video-script.md\n\n语音转录："},{"title":["创建真实提醒","Hermes Cron 不是口头答应"],"content":"请创建一个 10 分钟后的提醒：回来检查 OpenDeepSeek 手机上是否好用。请实际使用 cron 工具创建，并告诉我任务 ID。"},{"title":["生成周报草稿","从电脑文件名推工作线索"],"content":"请读取 /host/Desktop 或 /host/Documents 里和本周工作有关的文件名，不读取正文，帮我生成一份周报草稿到 /host/OpenDeepSeek-Outputs/weekly-report.md"},{"title":["记住我的偏好","长期记忆演示"],"content":"请记住：我偏好中文、直接、少废话、要真执行不要只解释。以后相关对话请主动参考这个偏好。"}]'
+      # 联网搜索（配合 SearXNG profile 使用）
+      - ENABLE_RAG_WEB_SEARCH=true
+      - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
+    volumes:
+      - open-webui-data:/app/backend/data
+      - ./webui/custom.css:/app/build/static/custom.css:ro       # OpenDeepSeek 主题 CSS
+      - ./webui/loader.js:/app/build/static/loader.js:ro            # 首屏汉化 + 自动加载 PWA 引导
+      - ./webui/pwa-prompt.js:/app/build/static/pwa-prompt.js:ro    # PWA 引导脚本
+      - ./webui/pwa-prompt.css:/app/build/static/pwa-prompt.css:ro  # PWA 引导样式（由 pwa-prompt.js 自动注入）
+    depends_on:
+      hermes:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - opendeepseek-network
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # SearXNG (可选 — 联网搜索后端)
+  # ═══════════════════════════════════════════════════════════════════════
+  searxng:
+    image: searxng/searxng:2026.4.28-ed5955a5c
+    container_name: opendeepseek-searxng
+    profiles:
+      - "full"
+    ports:
+      - "${BIND_HOST:-127.0.0.1}:8889:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    restart: unless-stopped
+    networks:
+      - opendeepseek-network
+
+volumes:
+  hermes-data:
+  open-webui-data:
+
+networks:
+  opendeepseek-network:
+    name: opendeepseek-network
+    driver: bridge

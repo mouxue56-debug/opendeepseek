@@ -1,0 +1,15 @@
+{
+  "timeout": "20s",
+  "retryOn429": true,
+  "retryCount": 1,
+  "fallbackRetryDelay": "5s",
+  "aliveStatusCodes": [200, 206],
+  "ignorePatterns": [
+    {
+      "pattern": "^https://raw.githubusercontent.com"
+    },
+    {
+      "pattern": "^https://github.com/.*/raw/"
+    }
+  ]
+}

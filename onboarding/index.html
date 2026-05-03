@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>OpenDeepSeek · 欢迎配置</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- 背景装饰（发布版默认隐藏，保留结构以兼容旧样式） -->
+<div class="blobs" aria-hidden="true">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+  <div class="blob blob-5"></div>
+</div>
+
+<div class="page-wrapper">
+  <div class="card" id="mainCard">
+
+    <!-- 步骤指示器 -->
+    <div class="steps-indicator" id="stepsIndicator" aria-label="进度">
+      <div class="step-dot active" id="dot-1"></div>
+      <div class="step-dot" id="dot-2"></div>
+      <div class="step-dot" id="dot-3"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Step 1：欢迎                                               -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="step active" id="step-1" aria-label="欢迎页">
+      <div class="logo-area">
+        <div class="logo-emoji">OD</div>
+        <h1 class="gradient-title">欢迎来到 OpenDeepSeek</h1>
+        <p class="subtitle">你的本地 AI 助手<br />三件套：Open WebUI × Hermes × DeepSeek V4</p>
+      </div>
+
+      <ul class="feature-list" aria-label="功能亮点">
+        <li class="feature-item">
+          <span class="feature-icon">🖥️</span>
+          <span><strong>Open WebUI</strong> — 美观的对话界面，支持多模型</span>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon">⚡</span>
+          <span><strong>Hermes</strong> — 高性能 API 网关 + 工具调用</span>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon">🧠</span>
+          <span><strong>DeepSeek V4</strong> — 顶级中文理解 + 推理能力</span>
+        </li>
+      </ul>
+
+      <p class="subtitle" style="margin-bottom:24px;font-size:0.9rem;">
+        只需要一个 DeepSeek API Key，30 秒即可完成配置。Hermes 会获得你的本机家目录访问权，用于真正执行文件、代码和自动化任务。
+      </p>
+
+      <button class="btn btn-primary" onclick="goStep(2)">
+        🚀 开始配置
+      </button>
+
+      <p class="footer-note" style="margin-top:16px;">
+        默认仅本机访问 · Agent 可操作 /host 下的本机文件
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Step 2：输入 API Key                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="step" id="step-2" aria-label="API Key 配置">
+      <div style="margin-bottom:24px;">
+        <h2 class="section-title">🔑 填写 DeepSeek API Key</h2>
+        <p class="section-desc">粘贴你的 API Key，系统将自动配置 Hermes Agent、Open WebUI 和本机文件访问</p>
+      </div>
+
+      <!-- 错误提示 -->
+      <div class="error-message" id="errorBox" role="alert">
+        <span>⚠️</span>
+        <span id="errorText">请填写 API Key</span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="apiKeyInput">
+          DeepSeek API Key
+        </label>
+        <input
+          type="password"
+          id="apiKeyInput"
+          class="form-input"
+          placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx"
+          autocomplete="off"
+          spellcheck="false"
+          aria-required="true"
+          aria-describedby="apiKeyHint"
+        />
+        <p class="form-hint" id="apiKeyHint">
+          👆 粘贴你的 Key（以 sk- 开头）&nbsp;·&nbsp;
+          <a
+            href="https://platform.deepseek.com/api_keys"
+            target="_blank"
+            rel="noopener noreferrer"
+          >没有 Key？点这里免费申请 →</a>
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">选择模型</label>
+        <div class="model-options" role="radiogroup" aria-label="模型选择">
+          <div class="model-card">
+            <input
+              type="radio"
+              name="model"
+              id="model-flash"
+              value="deepseek-v4-flash"
+              checked
+            />
+            <label for="model-flash">
+              <span class="model-emoji">⚡</span>
+              <span>V4 Flash</span>
+              <span class="model-badge tag tag-mint">推荐 · 快速</span>
+            </label>
+          </div>
+          <div class="model-card">
+            <input
+              type="radio"
+              name="model"
+              id="model-pro"
+              value="deepseek-v4-pro"
+            />
+            <label for="model-pro">
+              <span class="model-emoji">🧠</span>
+              <span>V4 Pro</span>
+              <span class="model-badge tag tag-lav">深度推理</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn btn-primary" id="activateBtn" onclick="handleActivate()">
+        ✨ 激活并启动
+      </button>
+
+      <button
+        class="btn btn-secondary"
+        style="margin-top:10px;"
+        onclick="goStep(1)"
+        aria-label="返回欢迎页"
+      >
+        ← 返回
+      </button>
+
+      <p class="footer-note">
+        API Key 仅保存在本机 .env；Agent 会把你的家目录挂到容器内 /host，请不要无认证暴露到公网
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- Step 3：启动中 & 就绪                                       -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <div class="step" id="step-3" aria-label="启动状态">
+
+      <!-- 加载中状态 -->
+      <div id="loadingView">
+        <div class="loader-wrapper">
+          <!-- 圆形进度环 -->
+          <div class="progress-ring-wrap" aria-hidden="true">
+            <svg class="progress-ring" width="88" height="88" viewBox="0 0 88 88">
+              <defs>
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"   stop-color="#10A37F" />
+                  <stop offset="50%"  stop-color="#10A37F" />
+                  <stop offset="100%" stop-color="#6B7280" />
+                </linearGradient>
+              </defs>
+              <circle class="progress-ring-bg" cx="44" cy="44" r="36" />
+              <circle class="progress-ring-fill" id="ringFill" cx="44" cy="44" r="36" />
+            </svg>
+            <div class="progress-ring-emoji" id="ringEmoji">⚙️</div>
+          </div>
+
+          <div>
+            <p class="loader-title" id="loaderTitle">正在启动你的 AI 助手…</p>
+            <p class="loader-subtitle" id="loaderSubtitle">请稍等片刻，这通常需要 30–120 秒</p>
+          </div>
+        </div>
+
+        <!-- 阶段步骤 -->
+        <div class="phase-steps" role="list" aria-label="启动阶段">
+          <div class="phase-item" id="phase-writing" role="listitem">
+            <span class="phase-icon" aria-hidden="true">📝</span>
+            写入配置文件
+          </div>
+          <div class="phase-item" id="phase-starting" role="listitem">
+            <span class="phase-icon" aria-hidden="true">🐳</span>
+            启动 Docker 容器
+          </div>
+          <div class="phase-item" id="phase-checking" role="listitem">
+            <span class="phase-icon" aria-hidden="true">🔍</span>
+            等待服务就绪
+          </div>
+        </div>
+
+        <!-- 错误详情（docker 失败时显示） -->
+        <div class="error-message" id="step3Error" role="alert" style="margin-top:20px;">
+          <span>⚠️</span>
+          <span id="step3ErrorText">启动失败</span>
+        </div>
+        <div class="error-detail" id="step3ErrorDetail"></div>
+
+        <button
+          class="btn btn-secondary"
+          id="retryBtn"
+          style="margin-top:16px;display:none;"
+          onclick="retryActivate()"
+        >
+          🔄 重试
+        </button>
+      </div>
+
+      <!-- 成功状态 -->
+      <div id="successView" style="display:none;">
+        <div class="success-wrapper fade-in">
+          <div class="success-emoji">🎉</div>
+          <p class="success-title">AI 助手已就绪！</p>
+          <p class="success-desc">
+            正在跳转到 Open WebUI…<br />
+            <small style="color:var(--t4);">如未自动跳转，请点击下方按钮</small>
+          </p>
+          <a
+            class="btn btn-primary"
+            href="http://localhost:3000"
+            target="_blank"
+            rel="noopener"
+            style="margin-top:8px;"
+          >
+            打开 Open WebUI →
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /step-3 -->
+
+  </div><!-- /card -->
+
+  <p class="footer-note" style="margin-top:16px;">
+    OpenDeepSeek &nbsp;·&nbsp;
+    <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+    &nbsp;·&nbsp; 仅本机访问 · 端口 3001
+  </p>
+</div><!-- /page-wrapper -->
+
+<script>
+/* ================================================================
+   Onboarding JavaScript
+   ================================================================ */
+
+const POLL_INTERVAL = 2500;  // ms
+let pollTimer = null;
+let ringOffset = 226;        // stroke-dashoffset 初始值（圆环满）
+
+// -------------------------------------------------------------------
+// 步骤切换
+// -------------------------------------------------------------------
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+
+  // 更新指示器
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.className = 'step-dot' +
+      (i < n ? ' done' : i === n ? ' active' : '');
+  }
+
+  // Step 3 进入时立刻开始轮询
+  if (n === 3) startPolling();
+}
+
+// -------------------------------------------------------------------
+// 表单校验 & 提交
+// -------------------------------------------------------------------
+function showError(msg) {
+  const box  = document.getElementById('errorBox');
+  const text = document.getElementById('errorText');
+  text.textContent = msg;
+  box.classList.add('visible');
+  document.getElementById('apiKeyInput').classList.add('error');
+}
+
+function clearError() {
+  document.getElementById('errorBox').classList.remove('visible');
+  document.getElementById('apiKeyInput').classList.remove('error');
+}
+
+async function handleActivate() {
+  clearError();
+
+  const key   = document.getElementById('apiKeyInput').value.trim();
+  const model = document.querySelector('input[name="model"]:checked').value;
+
+  if (!key) {
+    showError('API Key 不能为空，请先粘贴你的 DeepSeek API Key');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+  if (key.length < 8) {
+    showError('API Key 格式不正确，请确认复制完整');
+    return;
+  }
+
+  // 禁用按钮，防止重复点击
+  const btn = document.getElementById('activateBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ 提交中…';
+
+  try {
+    const resp = await fetch('/api/configure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deepseek_api_key: key, model }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      showError(data.error || '服务器错误，请刷新重试');
+      btn.disabled = false;
+      btn.textContent = '✨ 激活并启动';
+      return;
+    }
+
+    // 进入 Step 3
+    goStep(3);
+
+  } catch (err) {
+    showError('网络错误：' + (err.message || '请检查 server.py 是否运行'));
+    btn.disabled = false;
+    btn.textContent = '✨ 激活并启动';
+  }
+}
+
+// -------------------------------------------------------------------
+// 进度环更新（0–100）
+// -------------------------------------------------------------------
+function setRingProgress(pct) {
+  const circumference = 226;
+  const offset = circumference * (1 - pct / 100);
+  const ring = document.getElementById('ringFill');
+  if (ring) ring.style.strokeDashoffset = offset;
+}
+
+// -------------------------------------------------------------------
+// 阶段标记
+// -------------------------------------------------------------------
+const PHASE_ORDER = ['writing', 'starting', 'checking'];
+
+function markPhase(phaseId, status) {
+  // status: 'active' | 'done'
+  const el = document.getElementById('phase-' + phaseId);
+  if (!el) return;
+  el.className = 'phase-item ' + status;
+  if (status === 'done') {
+    el.querySelector('.phase-icon').textContent = '✅';
+  } else if (status === 'active') {
+    el.querySelector('.phase-icon').textContent = phaseId === 'writing'  ? '📝' :
+                                                   phaseId === 'starting' ? '🐳' : '🔍';
+  }
+}
+
+function updatePhaseUI(phase) {
+  const idx = PHASE_ORDER.indexOf(phase);
+  PHASE_ORDER.forEach((p, i) => {
+    if (i < idx)       markPhase(p, 'done');
+    else if (i === idx) markPhase(p, 'active');
+    // i > idx → 保持默认（不改）
+  });
+
+  // 进度环：writing=25, starting=60, checking=85, ready=100
+  const pctMap = { writing: 20, starting: 55, checking: 80, ready: 100, error: 0 };
+  setRingProgress(pctMap[phase] || 0);
+
+  // 标题
+  const titleMap = {
+    writing:  '正在写入配置文件…',
+    starting: '正在启动 Docker 容器…',
+    checking: '等待服务健康检查…',
+    ready:    '全部就绪！',
+    idle:     '准备中…',
+  };
+  const el = document.getElementById('loaderTitle');
+  if (el && titleMap[phase]) el.textContent = titleMap[phase];
+}
+
+// -------------------------------------------------------------------
+// 轮询 /api/status
+// -------------------------------------------------------------------
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(pollStatus, POLL_INTERVAL);
+  pollStatus(); // 立刻查一次
+}
+
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+async function pollStatus() {
+  try {
+    const resp = await fetch('/api/status');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    handleStatusUpdate(data);
+  } catch (_) {
+    // 忽略网络抖动
+  }
+}
+
+function handleStatusUpdate(data) {
+  const { ready, phase, message, error } = data;
+
+  updatePhaseUI(phase);
+
+  if (phase === 'error' || error) {
+    stopPolling();
+    showStep3Error(message || '启动失败', error || '');
+    return;
+  }
+
+  if (ready || phase === 'ready') {
+    stopPolling();
+    showSuccess();
+    return;
+  }
+}
+
+// -------------------------------------------------------------------
+// 错误 / 成功 UI
+// -------------------------------------------------------------------
+function showStep3Error(msg, detail) {
+  const errBox  = document.getElementById('step3Error');
+  const errText = document.getElementById('step3ErrorText');
+  const errDet  = document.getElementById('step3ErrorDetail');
+  const retryBtn = document.getElementById('retryBtn');
+
+  if (errBox)  errBox.classList.add('visible');
+  if (errText) errText.textContent = msg;
+  if (errDet && detail) {
+    errDet.textContent = detail;
+    errDet.classList.add('visible');
+  }
+  if (retryBtn) retryBtn.style.display = '';
+
+  // 更新 ring emoji
+  const emoji = document.getElementById('ringEmoji');
+  if (emoji) {
+    emoji.style.animation = 'none';
+    emoji.textContent = '❌';
+  }
+}
+
+function showSuccess() {
+  // 标记全部完成
+  PHASE_ORDER.forEach(p => markPhase(p, 'done'));
+  setRingProgress(100);
+
+  const emoji = document.getElementById('ringEmoji');
+  if (emoji) {
+    emoji.style.animation = 'none';
+    emoji.textContent = '✅';
+  }
+
+  // 切换到成功视图（带延迟，让进度环动画完成）
+  setTimeout(() => {
+    document.getElementById('loadingView').style.display = 'none';
+    document.getElementById('successView').style.display = '';
+
+    // 3 秒后自动跳转
+    setTimeout(() => {
+      window.location.href = 'http://localhost:3000';
+    }, 3000);
+  }, 700);
+}
+
+// -------------------------------------------------------------------
+// 重试
+// -------------------------------------------------------------------
+function retryActivate() {
+  stopPolling();
+
+  // 重置 step 3 UI
+  PHASE_ORDER.forEach(p => {
+    const el = document.getElementById('phase-' + p);
+    if (el) {
+      el.className = 'phase-item';
+      el.querySelector('.phase-icon').textContent =
+        p === 'writing' ? '📝' : p === 'starting' ? '🐳' : '🔍';
+    }
+  });
+  setRingProgress(0);
+
+  const errBox  = document.getElementById('step3Error');
+  const errDet  = document.getElementById('step3ErrorDetail');
+  const retryBtn = document.getElementById('retryBtn');
+  if (errBox)    errBox.classList.remove('visible');
+  if (errDet)    errDet.classList.remove('visible');
+  if (retryBtn)  retryBtn.style.display = 'none';
+
+  const emoji = document.getElementById('ringEmoji');
+  if (emoji) {
+    emoji.style.animation = '';
+    emoji.textContent = '⚙️';
+  }
+
+  const title = document.getElementById('loaderTitle');
+  if (title) title.textContent = '正在重新启动…';
+
+  // 回到 Step 2，重新填写
+  goStep(2);
+  const btn = document.getElementById('activateBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '✨ 激活并启动';
+  }
+}
+
+// -------------------------------------------------------------------
+// 初始化：检测是否已有服务在跑（刷新后快速跳转）
+// -------------------------------------------------------------------
+(async function init() {
+  try {
+    const resp = await fetch('/api/status');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data.ready) {
+      window.location.href = 'http://localhost:3000';
+    }
+  } catch (_) {
+    // 忽略
+  }
+})();
+</script>
+
+</body>
+</html>

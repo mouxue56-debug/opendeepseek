@@ -1,0 +1,886 @@
+/* ===================================================================
+   OpenDeepSeek Onboarding — neutral Open WebUI style
+   =================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+
+/* ------------------------------------------------------------------ */
+/* 设计变量                                                              */
+/* ------------------------------------------------------------------ */
+:root {
+  --pink:      #FF7B9C;
+  --pink-l:    #FFD1DC;
+  --pink-ll:   #FFF0F3;
+  --mint:      #5CC9A7;
+  --mint-l:    #C8F5E4;
+  --mint-ll:   #E8FBF3;
+  --lav:       #B48EE0;
+  --lav-l:     #E8D5F5;
+  --lav-ll:    #F5EEFA;
+  --yel:       #FFCB45;
+  --yel-l:     #FFF0C4;
+  --yel-ll:    #FFFBE6;
+  --peach:     #FFB088;
+  --peach-l:   #FFD9C2;
+  --peach-ll:  #FFEEE2;
+  --sky:       #77B5FE;
+  --sky-l:     #C8DDFE;
+  --sky-ll:    #E8F0FE;
+  --cream:     #FFF8F0;
+  --cream-d:   #FFF3E6;
+  --card:      #FFFFFF;
+
+  --t1: #3D2C24;
+  --t2: #6B5A50;
+  --t3: #9B8A80;
+  --t4: #C4B5A8;
+
+  --radius:    16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
+  --shadow:       0 2px 12px rgba(61,44,36,0.06);
+  --shadow-lg:    0 8px 32px rgba(61,44,36,0.10);
+  --shadow-hover: 0 8px 24px rgba(255,123,156,0.15);
+
+  --gradient-hero: linear-gradient(135deg, var(--pink) 0%, var(--lav) 50%, var(--sky) 100%);
+  --gradient-btn:  linear-gradient(135deg, var(--pink) 0%, var(--lav) 100%);
+  --gradient-btn2: linear-gradient(135deg, var(--mint) 0%, var(--sky) 100%);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', -apple-system,
+          BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reset & Base                                                          */
+/* ------------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--cream);
+  color: var(--t1);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ */
+/* 浮动 Blob 背景装饰                                                    */
+/* ------------------------------------------------------------------ */
+.blobs {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  animation: blobFloat 18s infinite ease-in-out;
+}
+
+.blob-1 {
+  width: 480px;
+  height: 480px;
+  background: var(--pink-l);
+  top: -120px;
+  left: -100px;
+  animation-delay: 0s;
+  animation-duration: 20s;
+}
+
+.blob-2 {
+  width: 360px;
+  height: 360px;
+  background: var(--mint-l);
+  top: 40%;
+  right: -80px;
+  animation-delay: -5s;
+  animation-duration: 23s;
+}
+
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: var(--lav-l);
+  bottom: -60px;
+  left: 30%;
+  animation-delay: -10s;
+  animation-duration: 17s;
+}
+
+.blob-4 {
+  width: 220px;
+  height: 220px;
+  background: var(--peach-l);
+  top: 20%;
+  left: 55%;
+  animation-delay: -3s;
+  animation-duration: 25s;
+}
+
+.blob-5 {
+  width: 260px;
+  height: 260px;
+  background: var(--sky-l);
+  bottom: 15%;
+  right: 25%;
+  animation-delay: -8s;
+  animation-duration: 21s;
+}
+
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25%       { transform: translate(20px, -30px) scale(1.05); }
+  50%       { transform: translate(-15px, 20px) scale(0.95); }
+  75%       { transform: translate(30px, 10px) scale(1.03); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 主容器 & 卡片                                                          */
+/* ------------------------------------------------------------------ */
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px 16px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+  overflow: hidden;
+  animation: cardIn 0.6s var(--ease) both;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-hero);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 步骤指示器                                                             */
+/* ------------------------------------------------------------------ */
+.steps-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 36px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--t4);
+  transition: all 0.35s var(--ease);
+}
+
+.step-dot.active {
+  background: var(--gradient-hero);
+  background: var(--pink);
+  width: 28px;
+  border-radius: 5px;
+}
+
+.step-dot.done {
+  background: var(--mint);
+}
+
+/* ------------------------------------------------------------------ */
+/* 步骤切换动画                                                           */
+/* ------------------------------------------------------------------ */
+.step {
+  display: none;
+  animation: stepIn 0.45s var(--ease) both;
+}
+
+.step.active {
+  display: block;
+}
+
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* 排版                                                                  */
+/* ------------------------------------------------------------------ */
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+  gap: 12px;
+}
+
+.logo-emoji {
+  font-size: 52px;
+  line-height: 1;
+  animation: logoBounce 2.5s infinite ease-in-out;
+}
+
+@keyframes logoBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.gradient-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: var(--t3);
+  text-align: center;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 8px;
+}
+
+.section-desc {
+  font-size: 0.9rem;
+  color: var(--t3);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------------ */
+/* 特性列表（Step 1）                                                    */
+/* ------------------------------------------------------------------ */
+.feature-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 24px 0 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: var(--cream);
+  font-size: 0.9rem;
+  color: var(--t2);
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.feature-item:nth-child(1) { background: var(--pink-ll); }
+.feature-item:nth-child(2) { background: var(--mint-ll); }
+.feature-item:nth-child(3) { background: var(--lav-ll);  }
+
+.feature-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* 表单                                                                  */
+/* ------------------------------------------------------------------ */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--t2);
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 2px solid var(--pink-l);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: var(--font);
+  color: var(--t1);
+  background: var(--card);
+  outline: none;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  letter-spacing: 0.03em;
+}
+
+.form-input::placeholder {
+  color: var(--t4);
+}
+
+.form-input:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 4px rgba(255,123,156,0.12);
+}
+
+.form-input.error {
+  border-color: #FF4D6A;
+  box-shadow: 0 0 0 4px rgba(255,77,106,0.10);
+}
+
+.form-hint {
+  margin-top: 7px;
+  font-size: 0.82rem;
+  color: var(--t4);
+}
+
+.form-hint a {
+  color: var(--pink);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.form-hint a:hover {
+  text-decoration: underline;
+}
+
+/* 模型选择 */
+.model-options {
+  display: flex;
+  gap: 12px;
+}
+
+.model-card {
+  flex: 1;
+  position: relative;
+}
+
+.model-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.model-card label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 12px;
+  border: 2px solid var(--pink-l);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.25s var(--ease);
+  background: var(--card);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--t2);
+  text-align: center;
+}
+
+.model-card label .model-emoji {
+  font-size: 1.3rem;
+}
+
+.model-card label .model-badge {
+  font-size: 0.72rem;
+  color: var(--t4);
+  font-weight: 400;
+}
+
+.model-card input[type="radio"]:checked + label {
+  border-color: var(--pink);
+  background: var(--pink-ll);
+  color: var(--pink);
+  box-shadow: 0 0 0 4px rgba(255,123,156,0.10);
+}
+
+/* ------------------------------------------------------------------ */
+/* 错误提示                                                              */
+/* ------------------------------------------------------------------ */
+.error-message {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  background: #FFF0F3;
+  color: #D63B6A;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.error-message.visible {
+  display: flex;
+}
+
+.error-detail {
+  display: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #FFF0F3;
+  color: #D63B6A;
+  font-size: 0.8rem;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  word-break: break-all;
+  margin-top: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.error-detail.visible {
+  display: block;
+}
+
+/* ------------------------------------------------------------------ */
+/* 按钮                                                                  */
+/* ------------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: var(--font);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.28s var(--ease);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--gradient-btn);
+  color: #fff;
+  width: 100%;
+  box-shadow: 0 4px 16px rgba(255,123,156,0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover);
+  filter: brightness(1.05);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(255,123,156,0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--t2);
+  border: 2px solid var(--pink-l);
+  width: 100%;
+}
+
+.btn-secondary:hover {
+  background: var(--pink-ll);
+  border-color: var(--pink);
+  transform: translateY(-2px);
+}
+
+/* ------------------------------------------------------------------ */
+/* 加载 Step 3                                                           */
+/* ------------------------------------------------------------------ */
+.loader-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 24px;
+  gap: 24px;
+}
+
+/* 圆形进度环 */
+.progress-ring-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: var(--pink-l);
+  stroke-width: 6;
+}
+
+.progress-ring-fill {
+  fill: none;
+  stroke: url(#ringGradient);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 226;
+  stroke-dashoffset: 226;
+  transition: stroke-dashoffset 0.6s var(--ease);
+}
+
+.progress-ring-emoji {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  animation: spin-slow 4s linear infinite;
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.loader-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--t1);
+  text-align: center;
+}
+
+.loader-subtitle {
+  font-size: 0.9rem;
+  color: var(--t3);
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* 阶段进度条 */
+.phase-steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.phase-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: var(--radius);
+  background: var(--cream);
+  font-size: 0.88rem;
+  color: var(--t3);
+  transition: all 0.3s var(--ease);
+}
+
+.phase-item.active {
+  background: var(--pink-ll);
+  color: var(--pink);
+  font-weight: 500;
+}
+
+.phase-item.done {
+  background: var(--mint-ll);
+  color: var(--mint);
+  font-weight: 500;
+}
+
+.phase-icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* 成功状态 */
+.success-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.success-emoji {
+  font-size: 4rem;
+  animation: successPop 0.5s var(--ease) both;
+}
+
+@keyframes successPop {
+  from { transform: scale(0.3); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.success-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--mint);
+  text-align: center;
+}
+
+.success-desc {
+  font-size: 0.9rem;
+  color: var(--t3);
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* ------------------------------------------------------------------ */
+/* 工具提示 tag                                                           */
+/* ------------------------------------------------------------------ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tag-pink  { background: var(--pink-ll);  color: var(--pink);  }
+.tag-mint  { background: var(--mint-ll);  color: var(--mint);  }
+.tag-lav   { background: var(--lav-ll);   color: var(--lav);   }
+
+/* ------------------------------------------------------------------ */
+/* 页脚                                                                  */
+/* ------------------------------------------------------------------ */
+.footer-note {
+  margin-top: 20px;
+  font-size: 0.8rem;
+  color: var(--t4);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.footer-note a {
+  color: var(--t3);
+  text-decoration: none;
+}
+
+.footer-note a:hover {
+  color: var(--pink);
+}
+
+/* ------------------------------------------------------------------ */
+/* 分隔线                                                                */
+/* ------------------------------------------------------------------ */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--pink-l), transparent);
+  margin: 20px 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* 动画工具类                                                             */
+/* ------------------------------------------------------------------ */
+.fade-in {
+  animation: fadeIn 0.4s var(--ease) both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* 移动端适配                                                             */
+/* ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .card {
+    padding: 32px 24px;
+    border-radius: var(--radius-lg);
+    max-width: 100%;
+  }
+
+  .gradient-title {
+    font-size: 1.55rem;
+  }
+
+  .logo-emoji {
+    font-size: 42px;
+  }
+
+  .blob-1 { width: 280px; height: 280px; }
+  .blob-2 { width: 220px; height: 220px; }
+  .blob-3 { width: 180px; height: 180px; }
+  .blob-4 { width: 140px; height: 140px; }
+  .blob-5 { width: 160px; height: 160px; }
+
+  .model-options {
+    flex-direction: column;
+  }
+
+  .model-card label {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  body {
+    font-size: 15px;
+  }
+
+  .card {
+    padding: 24px 18px;
+  }
+
+  .gradient-title {
+    font-size: 1.35rem;
+  }
+
+  .btn {
+    padding: 13px 20px;
+    font-size: 0.95rem;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Release neutral polish                                               */
+/* ------------------------------------------------------------------ */
+:root {
+  --pink: #10A37F;
+  --pink-l: #D1FAE5;
+  --pink-ll: #F7F7F8;
+  --mint: #10A37F;
+  --mint-l: #D1FAE5;
+  --mint-ll: #F2F7F5;
+  --lav: #6B7280;
+  --lav-l: #E5E7EB;
+  --lav-ll: #F7F7F8;
+  --yel: #10A37F;
+  --yel-l: #D1FAE5;
+  --yel-ll: #F7F7F8;
+  --peach: #6B7280;
+  --peach-l: #E5E7EB;
+  --peach-ll: #F7F7F8;
+  --sky: #6B7280;
+  --sky-l: #E5E7EB;
+  --sky-ll: #F7F7F8;
+  --cream: #F7F7F8;
+  --cream-d: #F3F4F6;
+  --card: #FFFFFF;
+  --t1: #111827;
+  --t2: #374151;
+  --t3: #6B7280;
+  --t4: #9CA3AF;
+  --radius: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 30px rgba(0,0,0,0.08);
+  --shadow-hover: 0 8px 18px rgba(0,0,0,0.10);
+  --gradient-hero: linear-gradient(135deg, #10A37F 0%, #10A37F 100%);
+  --gradient-btn: linear-gradient(135deg, #10A37F 0%, #0D8F70 100%);
+  --gradient-btn2: linear-gradient(135deg, #F3F4F6 0%, #E5E7EB 100%);
+}
+
+.blobs {
+  display: none;
+}
+
+body {
+  background: var(--cream);
+}
+
+.card {
+  border: 1px solid #E5E7EB;
+}
+
+.gradient-title {
+  background: none;
+  -webkit-text-fill-color: var(--t1);
+  color: var(--t1);
+}
+
+.logo-emoji {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: #111827;
+  color: #FFFFFF;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  animation: none;
+}
+
+@media (max-width: 768px) {
+  .logo-emoji {
+    font-size: 1.1rem;
+  }
+}

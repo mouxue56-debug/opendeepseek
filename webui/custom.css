@@ -1,0 +1,278 @@
+/**
+ * OpenDeepSeek — Open WebUI neutral polish
+ * 目标：保留 Open WebUI / ChatGPT 类中性体验，只做细节收敛。
+ * 避免：糖果色、纯色色块、装饰渐变、夸张阴影。
+ */
+
+:root {
+  --ods-font: "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Noto Sans SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --ods-mono: "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Consolas,
+    ui-monospace, monospace;
+  --ods-bg: #ffffff;
+  --ods-panel: #ffffff;
+  --ods-muted: #f7f7f8;
+  --ods-muted-2: #f1f1f2;
+  --ods-border: #e5e5e5;
+  --ods-text: #171717;
+  --ods-subtle: #5f6368;
+  --ods-soft: #8a8f98;
+  --ods-accent: #10a37f;
+  --ods-accent-hover: #0d8f70;
+  --ods-radius: 10px;
+  --ods-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+html,
+body {
+  font-family: var(--ods-font) !important;
+  background: var(--ods-bg) !important;
+  color: var(--ods-text) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html.dark,
+html.dark body {
+  --ods-bg: #171717;
+  --ods-panel: #212121;
+  --ods-muted: #2a2a2a;
+  --ods-muted-2: #303030;
+  --ods-border: #3a3a3a;
+  --ods-text: #f4f4f4;
+  --ods-subtle: #c7c7c7;
+  --ods-soft: #9b9b9b;
+  background: var(--ods-bg) !important;
+  color: var(--ods-text) !important;
+}
+
+code,
+pre,
+kbd,
+samp,
+.font-mono,
+[class*="font-mono"] {
+  font-family: var(--ods-mono) !important;
+}
+
+#app {
+  background: var(--ods-bg) !important;
+}
+
+body::before,
+body::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Neutralize the previous candy theme and any full-color panels. */
+[class*="from-pink"],
+[class*="to-pink"],
+[class*="from-purple"],
+[class*="to-purple"],
+[class*="from-rose"],
+[class*="to-rose"],
+[class*="from-yellow"],
+[class*="to-yellow"],
+[class*="from-orange"],
+[class*="to-orange"] {
+  --tw-gradient-from: transparent !important;
+  --tw-gradient-to: transparent !important;
+}
+
+.bg-pink-50,
+.bg-pink-100,
+.bg-purple-50,
+.bg-purple-100,
+.bg-rose-50,
+.bg-rose-100,
+.bg-yellow-50,
+.bg-yellow-100,
+.bg-orange-50,
+.bg-orange-100,
+.dark .bg-pink-950,
+.dark .bg-purple-950,
+.dark .bg-rose-950,
+.dark .bg-yellow-950,
+.dark .bg-orange-950 {
+  background-color: var(--ods-muted) !important;
+}
+
+/* Layout surfaces */
+#sidebar,
+[id*="sidebar"],
+nav[class*="flex-col"] {
+  background: var(--ods-muted) !important;
+  border-right: 1px solid var(--ods-border) !important;
+  box-shadow: none !important;
+}
+
+html.dark #sidebar,
+html.dark [id*="sidebar"],
+html.dark nav[class*="flex-col"] {
+  background: #181818 !important;
+  border-right-color: var(--ods-border) !important;
+}
+
+main,
+[role="main"],
+[class*="chat"],
+[class*="conversation"] {
+  background-color: var(--ods-bg) !important;
+}
+
+/* Cards, menus, modals, dropdowns */
+[role="dialog"],
+[role="menu"],
+[data-radix-popper-content-wrapper] > *,
+.modal,
+.popover,
+.dropdown,
+[class*="rounded"][class*="shadow"],
+[class*="bg-white"] {
+  border-color: var(--ods-border) !important;
+  box-shadow: var(--ods-shadow) !important;
+}
+
+html.dark [role="dialog"],
+html.dark [role="menu"],
+html.dark [data-radix-popper-content-wrapper] > *,
+html.dark .modal,
+html.dark .popover,
+html.dark .dropdown,
+html.dark [class*="rounded"][class*="shadow"] {
+  background-color: var(--ods-panel) !important;
+  border-color: var(--ods-border) !important;
+}
+
+/* Buttons and active accents: ChatGPT-like green, used sparingly. */
+button,
+a,
+input,
+textarea,
+select {
+  letter-spacing: 0 !important;
+}
+
+button[class*="bg-black"],
+button[class*="bg-gray-900"],
+button[class*="bg-gray-800"],
+button[class*="bg-green"],
+button[type="submit"] {
+  border-radius: var(--ods-radius) !important;
+}
+
+button[class*="bg-green"],
+button[type="submit"]:not([disabled]) {
+  background-color: var(--ods-accent) !important;
+  color: #fff !important;
+}
+
+button[class*="bg-green"]:hover,
+button[type="submit"]:not([disabled]):hover {
+  background-color: var(--ods-accent-hover) !important;
+}
+
+button[class*="hover:bg-gray"]:hover,
+a[class*="hover:bg-gray"]:hover,
+[role="button"][class*="hover:bg-gray"]:hover {
+  background-color: var(--ods-muted-2) !important;
+}
+
+html.dark button[class*="hover:bg-gray"]:hover,
+html.dark a[class*="hover:bg-gray"]:hover,
+html.dark [role="button"][class*="hover:bg-gray"]:hover {
+  background-color: #303030 !important;
+}
+
+/* Chat input */
+textarea,
+input[type="text"],
+input[type="search"],
+[contenteditable="true"] {
+  color: var(--ods-text) !important;
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--ods-soft) !important;
+}
+
+form:has(textarea),
+[class*="chat-input"],
+[class*="prompt"] form {
+  background-color: var(--ods-panel) !important;
+}
+
+/* Suggestion cards: subtle bordered cells, no color blocks. */
+button.waterfall,
+[role="list"] button,
+[role="listitem"].waterfall {
+  background: var(--ods-panel) !important;
+  border: 1px solid var(--ods-border) !important;
+  border-radius: var(--ods-radius) !important;
+  box-shadow: none !important;
+}
+
+button.waterfall:hover,
+[role="list"] button:hover,
+[role="listitem"].waterfall:hover {
+  background: var(--ods-muted) !important;
+  border-color: #d5d5d5 !important;
+}
+
+html.dark button.waterfall:hover,
+html.dark [role="list"] button:hover,
+html.dark [role="listitem"].waterfall:hover {
+  background: var(--ods-muted-2) !important;
+  border-color: #4a4a4a !important;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+.text-3xl,
+.text-2xl {
+  letter-spacing: 0 !important;
+}
+
+.text-gray-400,
+.text-gray-500,
+.text-gray-600,
+html.dark .text-gray-400,
+html.dark .text-gray-500,
+html.dark .text-gray-600 {
+  color: var(--ods-subtle) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 120, 0.32);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.48);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+@media (max-width: 640px) {
+  button.waterfall,
+  [role="list"] button {
+    border-radius: 8px !important;
+  }
+}
