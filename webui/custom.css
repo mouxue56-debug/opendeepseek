@@ -1,0 +1,797 @@
+/**
+ * OpenDeepSeek — Custom Theme
+ * 主题风格：科技感深蓝 × DeepSeek Blue
+ * 适配：Open WebUI v0.9.2（Tailwind class-based dark mode）
+ * 挂载路径：/app/build/static/custom.css
+ *
+ * 设计规范：
+ *   主色   #1565C0 / #0D47A1  DeepSeek 深蓝
+ *   强调色  #00BCD4           科技青
+ *   背景   #0A0F1E / #0F172A  深空蓝黑
+ *   文字   #E2E8F0 / #CBD5E1  冷白
+ */
+
+/* ─────────────────────────────────────────────
+   0. 字体堆栈（中文优先）
+───────────────────────────────────────────── */
+:root {
+  --owds-font-sans:
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI",
+    "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC",
+    "WenQuanYi Micro Hei", system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+
+  --owds-font-mono:
+    "JetBrains Mono", "Fira Code", "Cascadia Code",
+    "Source Code Pro", ui-monospace, "SFMono-Regular",
+    Consolas, monospace;
+
+  /* DeepSeek 蓝色系 */
+  --owds-blue-900: #0D47A1;
+  --owds-blue-800: #1565C0;
+  --owds-blue-700: #1976D2;
+  --owds-blue-600: #1E88E5;
+  --owds-blue-500: #2196F3;
+  --owds-blue-400: #42A5F5;
+  --owds-blue-300: #64B5F6;
+  --owds-blue-200: #90CAF9;
+  --owds-blue-100: #BBDEFB;
+
+  /* 科技青强调色 */
+  --owds-cyan-500: #00BCD4;
+  --owds-cyan-400: #26C6DA;
+  --owds-cyan-300: #4DD0E1;
+  --owds-cyan-glow: rgba(0, 188, 212, 0.15);
+
+  /* 背景层次 */
+  --owds-bg-base:    #0A0F1E;
+  --owds-bg-surface: #0F172A;
+  --owds-bg-elevated: #1E293B;
+  --owds-bg-overlay: #263148;
+
+  /* 文字层次 */
+  --owds-text-primary:   #E2E8F0;
+  --owds-text-secondary: #94A3B8;
+  --owds-text-muted:     #64748B;
+  --owds-text-inverse:   #0F172A;
+
+  /* 边框 */
+  --owds-border:        rgba(30, 41, 59, 0.8);
+  --owds-border-accent: rgba(21, 101, 192, 0.4);
+
+  /* 阴影 */
+  --owds-shadow-blue: 0 0 20px rgba(21, 101, 192, 0.25);
+  --owds-shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+
+/* ─────────────────────────────────────────────
+   1. 全局基础
+───────────────────────────────────────────── */
+html, body {
+  font-family: var(--owds-font-sans) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 强制深色模式（dark class on html） */
+html.dark body,
+body {
+  background-color: var(--owds-bg-base) !important;
+  color: var(--owds-text-primary) !important;
+}
+
+/* 代码字体 */
+code, pre, kbd, samp,
+.font-mono, [class*="font-mono"] {
+  font-family: var(--owds-font-mono) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   2. 应用主容器
+───────────────────────────────────────────── */
+#app {
+  background-color: var(--owds-bg-base) !important;
+}
+
+/* 覆盖 Tailwind bg-gray-50 dark:bg-gray-950 */
+.dark .bg-gray-950,
+.dark [class*="bg-gray-950"] {
+  background-color: var(--owds-bg-base) !important;
+}
+
+.dark .bg-gray-900,
+.dark [class*="bg-gray-900"] {
+  background-color: var(--owds-bg-surface) !important;
+}
+
+.dark .bg-gray-850,
+.dark [class*="bg-gray-850"] {
+  background-color: var(--owds-bg-elevated) !important;
+}
+
+.dark .bg-gray-800,
+.dark [class*="bg-gray-800"] {
+  background-color: var(--owds-bg-overlay) !important;
+}
+
+/* 浅色模式背景（保留浅色支持） */
+.bg-gray-50 {
+  background-color: #F0F4FF !important;
+}
+
+.bg-white {
+  background-color: #FFFFFF;
+}
+
+
+/* ─────────────────────────────────────────────
+   3. 侧栏 Sidebar
+───────────────────────────────────────────── */
+/* 主侧栏容器 */
+.dark #sidebar,
+.dark [id*="sidebar"],
+.dark nav[class*="flex-col"] {
+  background-color: var(--owds-bg-surface) !important;
+  border-right: 1px solid var(--owds-border-accent) !important;
+}
+
+/* 侧栏顶部标题区 "OpenDeepSeek" */
+.dark [class*="bg-gray-50"][class*="dark:bg-gray-950"] {
+  background-color: var(--owds-bg-surface) !important;
+}
+
+/* 聊天历史条目 hover */
+.dark [class*="hover:bg-gray-100"],
+.dark button[class*="hover:bg-gray-"] {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark [class*="hover:bg-gray-100"]:hover,
+.dark button[class*="hover:bg-gray-"]:hover {
+  background-color: var(--owds-bg-elevated) !important;
+  box-shadow: inset 2px 0 0 var(--owds-blue-700);
+}
+
+/* 侧栏已选中项 */
+.dark .bg-gray-200,
+.dark [class*="bg-gray-200"] {
+  background-color: rgba(21, 101, 192, 0.2) !important;
+  box-shadow: inset 2px 0 0 var(--owds-blue-600);
+}
+
+
+/* ─────────────────────────────────────────────
+   4. 顶部 Navbar / Header
+───────────────────────────────────────────── */
+.dark header,
+.dark [role="banner"],
+.dark .sticky.top-0 {
+  background-color: rgba(10, 15, 30, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid var(--owds-border-accent) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   5. 主聊天区域
+───────────────────────────────────────────── */
+/* 聊天背景 */
+.dark main,
+.dark [role="main"] {
+  background-color: var(--owds-bg-base) !important;
+}
+
+/* 用户消息气泡 */
+.dark [class*="user"] .rounded-3xl,
+.dark .bg-gray-500\/20,
+.dark [class*="bg-gray-500"] {
+  background-color: rgba(21, 101, 192, 0.18) !important;
+  border: 1px solid rgba(21, 101, 192, 0.3) !important;
+  border-radius: 16px !important;
+}
+
+/* 助手消息区域 */
+.dark .message-content,
+.dark [class*="assistant"] .prose {
+  color: var(--owds-text-primary) !important;
+}
+
+/* 消息分隔线 */
+.dark .border-gray-100,
+.dark .dark\:border-gray-850\/30 {
+  border-color: var(--owds-border) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   6. 文字颜色
+───────────────────────────────────────────── */
+.dark,
+.dark * {
+  --tw-text-opacity: 1;
+}
+
+.dark .text-gray-900,
+.dark .dark\:text-gray-200,
+.dark .dark\:text-white {
+  color: var(--owds-text-primary) !important;
+}
+
+.dark .text-gray-500,
+.dark .dark\:text-gray-500,
+.dark .text-gray-400 {
+  color: var(--owds-text-secondary) !important;
+}
+
+.dark .text-gray-300 {
+  color: var(--owds-text-secondary) !important;
+}
+
+/* Prose（Markdown 渲染） */
+.dark .prose {
+  color: var(--owds-text-primary) !important;
+}
+
+.dark .prose h1, .dark .prose h2, .dark .prose h3,
+.dark .prose h4, .dark .prose h5, .dark .prose h6 {
+  color: var(--owds-blue-300) !important;
+}
+
+.dark .prose a {
+  color: var(--owds-cyan-400) !important;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.dark .prose a:hover {
+  border-bottom-color: var(--owds-cyan-400);
+}
+
+.dark .prose strong {
+  color: var(--owds-blue-200) !important;
+}
+
+.dark .prose code {
+  color: var(--owds-cyan-300) !important;
+  background-color: rgba(0, 188, 212, 0.08) !important;
+  border: 1px solid rgba(0, 188, 212, 0.2) !important;
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+}
+
+.dark .prose pre {
+  background-color: #0D1B2A !important;
+  border: 1px solid var(--owds-border-accent) !important;
+  border-radius: 10px !important;
+}
+
+.dark .prose blockquote {
+  border-left-color: var(--owds-blue-700) !important;
+  background-color: rgba(21, 101, 192, 0.06) !important;
+  color: var(--owds-text-secondary) !important;
+}
+
+.dark .prose table th {
+  background-color: rgba(21, 101, 192, 0.15) !important;
+  color: var(--owds-blue-200) !important;
+}
+
+.dark .prose table td {
+  border-color: var(--owds-border) !important;
+}
+
+.dark .prose hr {
+  border-color: var(--owds-border-accent) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   7. 输入框 / 文本框
+───────────────────────────────────────────── */
+/* 主聊天输入框 */
+.dark textarea,
+.dark input[type="text"],
+.dark input[type="search"],
+.dark input[type="email"],
+.dark input[type="password"] {
+  background-color: var(--owds-bg-elevated) !important;
+  color: var(--owds-text-primary) !important;
+  border-color: var(--owds-border-accent) !important;
+  border-radius: 12px !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dark textarea:focus,
+.dark input[type="text"]:focus,
+.dark input[type="search"]:focus {
+  border-color: var(--owds-blue-600) !important;
+  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.2) !important;
+  outline: none !important;
+}
+
+/* 输入框容器（聊天框外壳） */
+.dark [class*="bg-gray-600"],
+.dark .dark\:bg-gray-700,
+.dark [class*="bg-gray-700"] {
+  background-color: var(--owds-bg-elevated) !important;
+}
+
+/* 输入区底部工具栏背景 */
+.dark [class*="rounded-2xl"],
+.dark [class*="rounded-3xl"] {
+  /* 仅针对输入区，不影响消息气泡 */
+}
+
+/* placeholder */
+.dark textarea::placeholder,
+.dark input::placeholder {
+  color: var(--owds-text-muted) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   8. 按钮
+───────────────────────────────────────────── */
+/* 主要按钮（发送、确认等） */
+.dark button[class*="bg-black"],
+.dark .dark\:bg-white.text-black,
+button[type="submit"][class*="dark"] {
+  background-color: var(--owds-blue-800) !important;
+  color: #FFFFFF !important;
+  border-radius: 10px !important;
+  transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+.dark button[class*="bg-black"]:hover,
+button[type="submit"]:hover {
+  background-color: var(--owds-blue-700) !important;
+  box-shadow: var(--owds-shadow-blue) !important;
+  transform: translateY(-1px);
+}
+
+/* 发送按钮圆形 */
+.dark button[aria-label="Send message"],
+.dark button[class*="rounded-full"][class*="bg-black"],
+.dark [class*="bg-black"][class*="rounded-full"] {
+  background: linear-gradient(135deg, var(--owds-blue-800), var(--owds-blue-600)) !important;
+  box-shadow: 0 2px 12px rgba(21, 101, 192, 0.4) !important;
+}
+
+.dark button[aria-label="Send message"]:hover {
+  background: linear-gradient(135deg, var(--owds-blue-700), var(--owds-blue-500)) !important;
+  box-shadow: 0 4px 20px rgba(21, 101, 192, 0.5) !important;
+}
+
+/* 次要按钮 */
+.dark button:not([class*="bg-black"]):not([class*="bg-blue"]) {
+  color: var(--owds-text-primary);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+/* 幽灵按钮 hover */
+.dark button[class*="hover:bg-gray"]:hover {
+  background-color: var(--owds-bg-elevated) !important;
+  color: var(--owds-blue-300) !important;
+}
+
+/* 危险/删除按钮 */
+.dark button[class*="text-red"],
+.dark [class*="text-red-500"] {
+  color: #FF6B6B !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   9. 模态框 / 下拉菜单 / 弹出层
+───────────────────────────────────────────── */
+.dark [role="dialog"],
+.dark .modal,
+.dark [class*="modal"] {
+  background-color: var(--owds-bg-elevated) !important;
+  border: 1px solid var(--owds-border-accent) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--owds-shadow-card), var(--owds-shadow-blue) !important;
+}
+
+/* 模态框遮罩 */
+.dark [class*="bg-black/60"],
+.dark [class*="bg-black\/60"] {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* 下拉菜单 */
+.dark [role="menu"],
+.dark [role="listbox"],
+.dark [class*="dropdown"] {
+  background-color: var(--owds-bg-elevated) !important;
+  border: 1px solid var(--owds-border-accent) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--owds-shadow-card) !important;
+}
+
+.dark [role="menuitem"]:hover,
+.dark [role="option"]:hover {
+  background-color: rgba(21, 101, 192, 0.15) !important;
+  color: var(--owds-blue-300) !important;
+}
+
+/* 选中项 */
+.dark [aria-selected="true"],
+.dark [role="option"][aria-selected="true"] {
+  background-color: rgba(21, 101, 192, 0.2) !important;
+  color: var(--owds-blue-300) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   10. 滚动条
+───────────────────────────────────────────── */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--owds-bg-base);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--owds-border-accent);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--owds-blue-700);
+}
+
+
+/* ─────────────────────────────────────────────
+   11. 代码块语法高亮 / 工具栏
+───────────────────────────────────────────── */
+/* 代码块顶栏 */
+.dark .code-block-header,
+.dark [class*="code"] [class*="flex"][class*="justify-between"] {
+  background-color: #0D1B2A !important;
+  border-bottom: 1px solid var(--owds-border-accent) !important;
+  border-radius: 10px 10px 0 0 !important;
+  padding: 8px 14px !important;
+}
+
+/* 语言标签 */
+.dark .code-block-header span,
+.dark [class*="language-label"] {
+  color: var(--owds-cyan-400) !important;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* 复制按钮 */
+.dark [aria-label*="copy"],
+.dark button[class*="copy"] {
+  color: var(--owds-text-secondary) !important;
+  transition: color 0.2s;
+}
+
+.dark [aria-label*="copy"]:hover,
+.dark button[class*="copy"]:hover {
+  color: var(--owds-cyan-400) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   12. 标签页 / Tab
+───────────────────────────────────────────── */
+.dark [role="tab"] {
+  color: var(--owds-text-secondary) !important;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.dark [role="tab"][aria-selected="true"],
+.dark [role="tab"].active {
+  color: var(--owds-blue-300) !important;
+  border-bottom-color: var(--owds-blue-600) !important;
+}
+
+.dark [role="tab"]:hover {
+  color: var(--owds-text-primary) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   13. 进度条 / Loading
+───────────────────────────────────────────── */
+.dark [role="progressbar"],
+.dark .animate-pulse {
+  background-color: var(--owds-bg-elevated) !important;
+}
+
+/* 流式输出光标 */
+.dark .cursor-blink,
+.dark [class*="typing-indicator"] {
+  color: var(--owds-cyan-400) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   14. 选中高亮 / Selection
+───────────────────────────────────────────── */
+.dark ::selection {
+  background-color: rgba(21, 101, 192, 0.35);
+  color: var(--owds-text-primary);
+}
+
+.dark ::-moz-selection {
+  background-color: rgba(21, 101, 192, 0.35);
+  color: var(--owds-text-primary);
+}
+
+
+/* ─────────────────────────────────────────────
+   15. 品牌标识（标题/logo 区）
+───────────────────────────────────────────── */
+/* App 名称 "OpenDeepSeek" */
+.dark [class*="text-xl"][class*="font-bold"],
+.dark [class*="font-semibold"][class*="text-lg"] {
+  background: linear-gradient(90deg, var(--owds-blue-400), var(--owds-cyan-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 欢迎页标题 */
+.dark h1[class*="text-2xl"],
+.dark h1[class*="text-3xl"],
+.dark h2[class*="text-2xl"] {
+  color: var(--owds-blue-300) !important;
+}
+
+/* 欢迎页副标题 */
+.dark p[class*="text-gray-500"],
+.dark p[class*="text-gray-400"] {
+  color: var(--owds-text-secondary) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   16. 设置页面
+───────────────────────────────────────────── */
+.dark .settings-page,
+.dark [class*="settings"] {
+  background-color: var(--owds-bg-surface) !important;
+}
+
+/* 设置分组标题 */
+.dark [class*="settings"] [class*="text-xs"][class*="uppercase"] {
+  color: var(--owds-cyan-400) !important;
+  letter-spacing: 0.1em;
+}
+
+/* 设置项行 */
+.dark [class*="settings"] [class*="flex"][class*="items-center"][class*="justify-between"] {
+  border-bottom: 1px solid var(--owds-border) !important;
+  padding: 12px 0;
+}
+
+/* Toggle/Switch */
+.dark input[type="checkbox"] + [class*="toggle"],
+.dark [role="switch"][aria-checked="true"] {
+  background-color: var(--owds-blue-700) !important;
+}
+
+
+/* ─────────────────────────────────────────────
+   17. 移动端适配 (@media)
+───────────────────────────────────────────── */
+
+/* 触摸目标最小 44px */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  a,
+  input,
+  textarea,
+  select,
+  [role="tab"],
+  [role="menuitem"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* 文字大小基准 — 防止 iOS 自动缩放 */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    font-size: 16px;
+  }
+
+  /* 侧栏：全屏覆盖式（原 Open WebUI 已有但加强） */
+  .dark #sidebar,
+  .dark [id*="sidebar"] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100dvh !important;
+    height: 100vh !important;
+    z-index: 50 !important;
+    /* 支持 swipe 手势（让浏览器处理滚动传播） */
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 侧栏遮罩 */
+  .dark .bg-black\/60 {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 49 !important;
+  }
+
+  /* 聊天输入框：全宽 + 底部安全区 */
+  .dark textarea,
+  .dark input[type="text"] {
+    width: 100% !important;
+    font-size: 16px !important;      /* 防止 iOS 缩放 */
+    padding-bottom: env(safe-area-inset-bottom, 8px) !important;
+  }
+
+  /* 输入框容器贴底 */
+  .dark [class*="sticky"][class*="bottom"] {
+    padding-bottom: max(env(safe-area-inset-bottom), 8px) !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* 消息列表底部留白（防止输入框遮挡） */
+  .dark main [class*="pb-18"],
+  .dark main [class*="pb-6"] {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px) + 80px, 100px) !important;
+  }
+
+  /* 导航栏紧凑化 */
+  .dark header {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* 模型选择器：全宽下拉 */
+  .dark [role="listbox"],
+  .dark [role="combobox"] {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  /* 代码块：横向滚动 */
+  .dark .prose pre {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: calc(100vw - 32px) !important;
+  }
+
+  /* 表格：横向滚动 */
+  .dark .prose table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 消息气泡：移动端间距优化 */
+  .dark [class*="user"] .rounded-3xl {
+    padding: 12px 16px !important;
+  }
+}
+
+/* 超小屏（iPhone SE 等） */
+@media (max-width: 375px) {
+  html {
+    font-size: 15px;
+  }
+
+  .dark main {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+/* 平板（iPad 等）横向布局优化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .dark #sidebar,
+  .dark [id*="sidebar"] {
+    width: 260px !important;
+  }
+}
+
+
+/* ─────────────────────────────────────────────
+   18. 微动画 / Transitions
+───────────────────────────────────────────── */
+/* 全局过渡（不影响性能关键路径） */
+.dark button,
+.dark a,
+.dark input,
+.dark textarea,
+.dark [role="menuitem"] {
+  transition-property: background-color, color, border-color, box-shadow, opacity, transform;
+  transition-duration: 0.15s;
+  transition-timing-function: ease;
+}
+
+/* 侧栏滑入 */
+.dark #sidebar,
+.dark [id*="sidebar"] {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              background-color 0.2s ease !important;
+}
+
+/* 消息淡入 */
+@keyframes owds-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dark [class*="message"]:last-child {
+  animation: owds-msg-in 0.2s ease forwards;
+}
+
+
+/* ─────────────────────────────────────────────
+   19. 细节打磨
+───────────────────────────────────────────── */
+
+/* 分隔线用蓝色调 */
+.dark hr,
+.dark .divider {
+  border-color: var(--owds-border-accent) !important;
+}
+
+/* Badge / Tag */
+.dark [class*="badge"],
+.dark [class*="tag"],
+.dark [class*="chip"] {
+  background-color: rgba(21, 101, 192, 0.15) !important;
+  color: var(--owds-blue-300) !important;
+  border: 1px solid rgba(21, 101, 192, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* 工具提示 Tooltip */
+.dark [role="tooltip"],
+.dark [class*="tooltip"] {
+  background-color: var(--owds-bg-overlay) !important;
+  color: var(--owds-text-primary) !important;
+  border: 1px solid var(--owds-border-accent) !important;
+  border-radius: 8px !important;
+  font-size: 0.8rem !important;
+  box-shadow: var(--owds-shadow-card) !important;
+}
+
+/* 焦点可见性（无障碍） */
+.dark *:focus-visible {
+  outline: 2px solid var(--owds-blue-500) !important;
+  outline-offset: 2px !important;
+}
+
+/* 图片/头像圆角 */
+.dark img[class*="rounded"],
+.dark [class*="avatar"] img {
+  border: 1px solid var(--owds-border-accent);
+}
+
+/* 品牌色 accent 线装饰 */
+.dark [class*="border-l-4"],
+.dark [class*="border-l-[4px]"] {
+  border-left-color: var(--owds-blue-700) !important;
+}
