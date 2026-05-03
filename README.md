@@ -12,6 +12,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/yourusername/opendeepseek/ma
 
 → 详细各平台一键命令见 [docs/ONE-CLICK.md](docs/ONE-CLICK.md)
 
+> **⚠️ 安全提醒**：默认家庭模式下端口绑定到 `127.0.0.1`（仅本机访问）。如需在云服务器 / 公网部署，必须：
+> 1. 在 `.env` 设置 `WEBUI_AUTH=true`（启用账号登录）
+> 2. 在 `.env` 设置 `BIND_HOST=0.0.0.0`（绑定全部网卡）
+> 3. 配置反向代理（Nginx / Caddy）+ HTTPS + IP 白名单或 Tailscale 隧道
+>
+> 详见 [docs/SECURITY.md](docs/SECURITY.md)。**永远不要在没有 auth 的情况下把服务暴露到公网。**
+
 ---
 
 ## 这是什么

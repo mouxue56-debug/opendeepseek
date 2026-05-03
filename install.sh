@@ -31,6 +31,11 @@ CLEANUP_ON_EXIT=0
 
 _cleanup() {
   if [[ "$CLEANUP_ON_EXIT" -eq 1 && -n "$INSTALL_DIR" && -d "$INSTALL_DIR" ]]; then
+    # 安全拦截：禁止清理根目录、家目录或相对路径跳转
+    if [[ "$INSTALL_DIR" == "/" || "$INSTALL_DIR" == "$HOME" || "$INSTALL_DIR" == "$HOME/" || "$INSTALL_DIR" =~ \.\. ]]; then
+      err "安全检查拦截：拒绝执行危险清理操作（INSTALL_DIR=$INSTALL_DIR）"
+      return 0
+    fi
     warn "安装中止，清理残留目录: $INSTALL_DIR"
     rm -rf "$INSTALL_DIR"
   fi
@@ -260,7 +265,9 @@ fi
 
 # 若 clone 失败，依次尝试镜像
 if [[ "$CLONED" -eq 0 ]]; then
-  warn "直连 GitHub 失败，尝试国内镜像..."
+  warn "GitHub 直连失败，将尝试第三方镜像加速。"
+  warn "⚠️  第三方镜像非项目官方维护，理论上存在内容篡改风险。"
+  warn "如对完整性敏感，请按 docs/CHINA-NETWORK.md 配置个人可信代理后重试。"
   for mirror in "${MIRROR_URLS[@]}"; do
     if _try_clone "$mirror"; then
       CLONED=1

@@ -5,6 +5,11 @@
 
 set -e
 
+# 确保在项目根目录执行（含 docker-compose.yml）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.." || { echo "ERR: cannot cd to project root"; exit 1; }
+[[ -f "docker-compose.yml" ]] || { echo "ERR: docker-compose.yml not found in $(pwd)"; exit 1; }
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -25,7 +30,7 @@ echo ""
 
 # 1. .env 存在
 info "[1/7] 检查 .env 文件"
-if [[ -f .env ]] && grep -q "DEEPSEEK_API_KEY=" .env && ! grep -q "DEEPSEEK_API_KEY=your-deepseek-api-key-here" .env; then
+if [[ -f .env ]] && grep -v '^\s*#' .env | grep -qE "^DEEPSEEK_API_KEY[[:space:]]*=" && ! grep -q "DEEPSEEK_API_KEY=your-deepseek-api-key-here" .env; then
     ok ".env 配置完毕"
 else
     fail ".env 缺失或未配置 DEEPSEEK_API_KEY"
@@ -64,7 +69,7 @@ fi
 
 # 5. Hermes OpenAI-compat /v1/models
 info "[5/7] 检查 Hermes OpenAI 兼容接口"
-HERMES_KEY=$(grep "^HERMES_API_KEY=" .env | cut -d'=' -f2)
+HERMES_KEY=$(grep -m1 "^HERMES_API_KEY=" .env | cut -d'=' -f2- | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']|["'"'"']$//g')
 MODELS_RESP=$(curl -fsS http://localhost:8642/v1/models -H "Authorization: Bearer ${HERMES_KEY}" 2>&1 || echo "FAIL")
 # Hermes exposes itself as "hermes-agent" model ID (proxy to DeepSeek); check for valid OpenAI-compat list
 if echo "$MODELS_RESP" | grep -q '"object".*"list"' || echo "$MODELS_RESP" | grep -q '"data"'; then
@@ -85,7 +90,7 @@ CHAT_RESP=$(curl -fsS http://localhost:8642/v1/chat/completions \
     }' 2>&1 || echo "FAIL")
 if echo "$CHAT_RESP" | grep -q '"content"'; then
     ok "端到端调用成功（Hermes → DeepSeek 返回内容）"
-    echo "    回复片段：$(echo $CHAT_RESP | head -c 200)..."
+    echo "    回复片段：$(echo "$CHAT_RESP" | head -c 200)..."
 else
     fail "端到端调用失败"
     echo "    响应：$(echo $CHAT_RESP | head -c 300)"
