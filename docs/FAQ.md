@@ -92,9 +92,10 @@
 | 组件 | 最低配置 | 推荐配置 | 说明 |
 |------|---------|---------|------|
 | **Open WebUI** | 2 核 2G | 2 核 4G | 前端 + 后端，无 GPU 需求 |
-| **Hermes Agent** | 1 核 1G | 2 核 2G | 工具编排、记忆管理 |
+| **Hermes Agent** | 1 核 1G | 2 核 2G | 可选（advanced profile）— IM 集成 / Cron 任务，默认不启动 |
 | **SearXNG**（可选） | 1 核 1G | 1 核 2G | 自托管搜索，无外部依赖 |
-| **总计** | **4 核 4G** | **4 核 8G** | 含系统开销余量 |
+| **总计（默认）** | **3 核 3G** | **3 核 6G** | 不含 Hermes；省 1 核 1G |
+| **总计（advanced）** | **4 核 4G** | **4 核 8G** | 含 Hermes，含系统开销余量 |
 
 **4 核 4G 实测表现**：
 
@@ -364,7 +365,7 @@ Telegram 服务在中国大陆及部分地区无法直接访问，需要：
 
 **关键说明**：
 
-- **本地组件**（Open WebUI、Hermes、SearXNG）全部自托管，数据不出服务器。
+- **本地组件**（Open WebUI、SearXNG，以及可选的 Hermes）全部自托管，数据不出服务器。
 - **DeepSeek API 调用**时，prompt 和上下文会发送到 DeepSeek 服务器进行处理，这是使用云端模型的必要条件。
 - 若需 **完全离线**，可替换为本地模型（如 Ollama + Llama 3），但能力会下降。
 
@@ -420,29 +421,49 @@ LOG_LEVEL=warning
 
 ### Q: Hermes Agent 是什么？为什么不直接用 Open WebUI 接 DeepSeek？
 
-**Hermes Agent 是 OpenDeepSeek 的核心编排层**，解决三个 Open WebUI 原生不支持的问题：
+**v0.3.0 起，默认部署不启动 Hermes。** Open WebUI 直连 DeepSeek API，绝大多数用户不需要 Hermes。
 
-| 能力 | Open WebUI 原生 | OpenDeepSeek (Hermes) |
-|------|----------------|----------------------|
-| **工具调用编排** | 单轮简单调用 | 多轮链式调用、条件分支、错误重试 |
-| **记忆管理** | 无长期记忆 | 自动总结、跨会话记忆、知识库关联 |
-| **Agent 工作流** | 不支持 | 可视化编排复杂任务（如：搜索→分析→生成报告） |
-| **多模型路由** | 手动切换 | 根据任务自动选择 v4-flash / v4-pro |
-| **IM 集成** | 不支持 | 内置钉钉/飞书/企微 Bridge |
+Hermes 是一个**可选的高级层**，仅在以下场景才需要：
 
-**架构对比**：
+- 在**钉钉 / 飞书 / 企微等 IM** 里直接 @bot 与 AI 对话
+- 需要 AI **后台跑定时任务**并把结果推送到 IM 群
+
+> **为什么默认不开？** Hermes 不原生支持 DeepSeek 作为 LLM provider，强加一层只会引入 401 鉴权 bug。默认架构去掉这层，更简单、更稳定。
+
+**数据流对比**：
 
 ```
-【纯 Open WebUI】
-用户 → Open WebUI → DeepSeek API（直接转发）
+普通对话流（默认，开箱即用）：
+用户 → Open WebUI → DeepSeek API → 回复
 
-【OpenDeepSeek】
-用户 → Open WebUI → Hermes Agent → 工具调用 / 记忆检索 / 多模型路由 → DeepSeek API
-                ↓
-           SearXNG / 知识库 / IM Bridge
+IM/Cron 流（advanced profile，按需启用）：
+钉钉用户 @bot → Hermes → OpenRouter API → 回复发回钉钉群
+（Hermes 同时跑 Cron 任务）
 ```
 
-**简单说**：如果只是偶尔聊天，Open WebUI 足够；如果需要 **自动化工作流、长期记忆、团队协作**，Hermes 是必要的。
+**启用 Hermes（advanced profile）**：
+
+```bash
+docker compose --profile advanced up -d
+```
+
+> ⚠️ 启用 Hermes 需要额外的 API key（OpenRouter / Anthropic / Kimi 等），**不能**直接复用 DeepSeek key。请在 `.env` 中配置 `HERMES_LLM_PROVIDER` 及对应 key。
+
+---
+
+### Q: 默认架构和 advanced profile 的区别？
+
+| 对比项 | 默认部署 | advanced profile |
+|--------|---------|-----------------|
+| **启动命令** | `docker compose up -d` | `docker compose --profile advanced up -d` |
+| **容器数** | 2（Open WebUI + SearXNG） | 3（+ Hermes） |
+| **内存占用** | ~3G（最低） | ~4G（最低） |
+| **LLM provider** | DeepSeek API（直连） | DeepSeek（WebUI）+ OpenRouter/Anthropic/Kimi 等（Hermes） |
+| **普通网页对话** | ✅ | ✅ |
+| **IM 机器人（钉钉/飞书）** | ❌ | ✅ |
+| **定时任务 / Cron 推送** | ❌ | ✅ |
+| **额外 API key 需求** | 无 | 需配置 Hermes LLM provider key |
+| **何时选用** | 绝大多数个人 / 团队用户 | 需要 IM 集成或后台自动化的用户 |
 
 ---
 
@@ -455,7 +476,7 @@ LOG_LEVEL=warning
 | 层面 | 措施 |
 |------|------|
 | **存储** | API key 写入 `.env`，**绝不进入 git**（`.gitignore` 已排除） |
-| **传输** | Hermes 内部使用，前端不可见；日志自动脱敏 |
+| **传输** | 服务端内部使用（Open WebUI / Hermes），前端不可见；日志自动脱敏 |
 | **隔离** | 多用户场景下，普通用户无法读取 `.env` 或系统环境变量 |
 
 **验证你的 key 是否安全**：

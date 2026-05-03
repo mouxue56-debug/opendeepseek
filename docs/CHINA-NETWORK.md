@@ -1,6 +1,6 @@
 # 中国网络环境部署指南
 
-> 本文档面向在中国大陆网络环境下部署 OpenDeepSeek 的用户。项目核心架构（Open WebUI + Hermes Agent + DeepSeek V4）在国内可直接运行，但部分外部组件需要替代方案。
+> 本文档面向在中国大陆网络环境下部署 OpenDeepSeek 的用户。项目默认架构（Open WebUI 直连 DeepSeek V4）在国内可直接运行：DeepSeek API 国内 CDN 节点稳定访问，**无需翻墙**。仅 Docker 镜像下载和可选的 SearXNG 联网搜索可能需要镜像加速。
 
 ---
 

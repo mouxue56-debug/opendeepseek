@@ -23,7 +23,7 @@
 |:---|:---|:---|:---:|
 | **Chat** | 对话 | 你和 AI 聊天的页面 | ✅ 常用 |
 | **New Chat** | 新对话 | 点这个开一个新聊天窗口，之前的记录还在 | ✅ 常用 |
-| **Models** | AI 大脑 | 你能选的 AI 型号，比如 hermes-agent 是默认的 | ✅ 常用 |
+| **Models** | AI 大脑 | 你能选的 AI 型号，默认是 deepseek-v4-flash（DeepSeek V4 快速版） | ✅ 常用 |
 | **Workspace** | 工作区 | 你所有的对话记录、上传的文件、收藏的东西 | ✅ 常用 |
 | **Knowledge** | 知识库 | 你上传的文档，让 AI 学完后专门帮你回答相关问题 | ✅ 常用 |
 | **Documents** | 文件柜 | 你上传的所有文件放这里 | ✅ 常用 |
@@ -137,14 +137,14 @@
 - 存到电脑里，以后随时看
 
 ### 切换不同 AI 模型
-- 对话框顶部或左上角，点当前模型名字（比如 hermes-agent）
+- 对话框顶部或左上角，点当前模型名字（比如 deepseek-v4-flash）
 - 弹出 Models 列表，选别的"大脑"
-- **建议新手：** 用默认的 hermes-agent 就行，别的可能更快或更慢，但不一定更好
+- **建议新手：** 用默认的 deepseek-v4-flash 就行，别的可能更快或更慢，但不一定更好
 
 ### 上传图片让 AI 看
 - 和传文件一样，把图片拖进对话框
 - 问"这张图里有什么""这张表格数据是多少""帮我描述这张图"
-- 注意：不是所有模型都支持看图，hermes-agent 一般可以
+- 注意：不是所有模型都支持看图，deepseek-v4-flash 一般可以
 
 ---
 
@@ -154,7 +154,7 @@
 |:---|:---|:---|
 | 一堆英文菜单，左边有 Users、Models、Connections…… | **Admin Panel（管理员后台）** | 点左上角 **OpenDeepSeek logo** 或按键盘 `ESC` |
 | 很多管道图、节点、连线 | **Pipelines（AI 流水线）** | 直接关标签页，重新开 `localhost:3000` |
-| 模型列表，有 hermes-agent、llama、qwen 等 | **Models（选 AI 大脑）** | 选好点确认，或点 logo 回首页 |
+| 模型列表，有 deepseek-v4-flash、llama、qwen 等 | **Models（选 AI 大脑）** | 选好点确认，或点 logo 回首页 |
 | 代码编辑器一样的界面，有 function、async def | **Functions（扩展功能）** | 关！这是给程序员用的 |
 | 不知道自己在哪，界面很陌生 | — | **万能方法：点左上角 logo，或刷新页面重新进** |
 

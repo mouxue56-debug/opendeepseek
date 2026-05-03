@@ -1,7 +1,8 @@
 # OpenDeepSeek 安装指南
 
 > 一键部署本地 Agentic ChatGPT 替代品  
-> 架构：Open WebUI（终端层）× Hermes Agent Gateway（内核层）× DeepSeek V4 Flash（模型层）
+> 架构（v0.3.0 默认）：Open WebUI ⟶ DeepSeek V4 Flash 直连  
+> 可选高级层（`--profile advanced`）：Hermes Agent 用于 IM 桥接（钉钉/飞书等）
 
 ---
 
@@ -42,7 +43,7 @@ chmod +x setup.sh
 1. 检查 Docker 和 Docker Compose 是否已安装
 2. 复制 `.env.example` 为 `.env`（如不存在）
 3. 拉取最新 Docker 镜像
-4. 启动所有服务（Open WebUI + Hermes Agent Gateway + DeepSeek 模型）
+4. 启动 Open WebUI 容器（直连 DeepSeek API）
 5. 等待健康检查通过
 6. 打印访问地址和下一步指引
 
@@ -132,7 +133,7 @@ http://localhost:3000
 
 1. 登录后点击右上角头像 → **Admin Panel**
 2. 左侧菜单选择 **Settings → Connections**
-3. 在 **OpenAI API** 或 **Direct Connections** 区域，确认已显示 **Hermes Agent Gateway**
+3. 在 **OpenAI API** 或 **Direct Connections** 区域，确认已显示 `https://api.deepseek.com/v1` 连接 + 模型列表（`deepseek-v4-flash` / `deepseek-v4-pro`）
 4. 模型列表中应包含 `deepseek-v4-flash` 及相关变体
 
 如果 Hermes 未显示，请检查：
