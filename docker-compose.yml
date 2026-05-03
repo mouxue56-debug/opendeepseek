@@ -1,24 +1,36 @@
 # OpenDeepSeek - docker-compose.yml
 # Project: OpenDeepSeek (一键部署本地 Agentic ChatGPT 替代品)
-# Version: v2026.4.23
-# Architecture: Open WebUI (终端) → Hermes Agent Gateway (内核) → DeepSeek V4 (模型)
-# Generated: 2026-04-27
-# Usage: docker compose up -d (默认启动) | docker compose --profile full up -d (含 SearXNG)
+# Version: v0.3.0 — Open WebUI 直连 DeepSeek（架构简化）
+# Architecture (默认):  Open WebUI ─→ DeepSeek API
+# Architecture (advanced): Open WebUI ─→ DeepSeek API
+#                          Hermes ─→ OpenRouter/其他 LLM（用户接 IM 时启用）
+# Usage:
+#   docker compose up -d                          → 默认（Open WebUI + DeepSeek，普通用户）
+#   docker compose --profile advanced up -d        → 含 Hermes（IM 桥接 / Cron / Skills）
+#   docker compose --profile full up -d            → 含 SearXNG 联网搜索
 # Network binding: 默认绑定 127.0.0.1（仅本机），跨网络访问请在 .env 设置 BIND_HOST=0.0.0.0
 
 services:
+  # ═══════════════════════════════════════════════════════════════════════
+  # Hermes Agent (可选 — 仅在用户接 IM/Cron/Skills 时启用)
+  # 注意：Hermes 不原生支持 DeepSeek 作为 LLM provider
+  #       启用此 profile 需要额外 OpenRouter / Anthropic / Kimi 等 API key
+  # ═══════════════════════════════════════════════════════════════════════
   hermes:
     image: nousresearch/hermes-agent:v2026.4.23
     container_name: opendeepseek-hermes
+    profiles:
+      - "advanced"
     command: gateway run
     ports:
       - "${BIND_HOST:-127.0.0.1}:8642:8642"
     environment:
-      - "OPENAI_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
-      - OPENAI_API_BASE_URL=https://api.deepseek.com/v1
-      - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek/deepseek-v4-flash}
+      # Hermes 自己的 LLM provider（OpenRouter 推荐，接 DeepSeek 走 openrouter/deepseek 路由）
+      - "OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}"
+      - HERMES_INFERENCE_PROVIDER=${HERMES_INFERENCE_PROVIDER:-openrouter}
+      - DEFAULT_MODEL=${HERMES_DEFAULT_MODEL:-deepseek/deepseek-chat}
       - API_SERVER_ENABLED=true
-      - "API_SERVER_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
+      - "API_SERVER_KEY=${HERMES_API_KEY:-hermes-default-key}"
       - API_SERVER_PORT=8642
       - API_SERVER_HOST=0.0.0.0
       # ── IM Bridge Integrations (uncomment as needed) ──
@@ -58,14 +70,18 @@ services:
     networks:
       - opendeepseek-network
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # Open WebUI (主服务) — 直连 DeepSeek API
+  # ═══════════════════════════════════════════════════════════════════════
   open-webui:
     image: ghcr.io/open-webui/open-webui:0.9.2
     container_name: opendeepseek-webui
     ports:
       - "${BIND_HOST:-127.0.0.1}:3000:8080"
     environment:
-      - OPENAI_API_BASE_URL=http://hermes:8642/v1
-      - "OPENAI_API_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
+      # 🔴 直连 DeepSeek（不经过 Hermes — Hermes 不支持 DeepSeek 作为 LLM provider）
+      - OPENAI_API_BASE_URL=https://api.deepseek.com/v1
+      - "OPENAI_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
       - WEBUI_NAME=OpenDeepSeek
       - "WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?Missing required: WEBUI_SECRET_KEY (run ./setup.sh)}"
       - DEFAULT_LOCALE=zh-CN
@@ -75,19 +91,16 @@ services:
       # WEBUI_AUTH=false 跳过登录（仅适合家庭单机/Tailscale 私有网络）
       # 公网部署务必改为 true 并配反向代理
       - WEBUI_AUTH=${WEBUI_AUTH:-false}
-      # 默认预选模型 ID（hermes 暴露的模型）
-      - DEFAULT_MODELS=${DEFAULT_MODELS_FRONTEND:-hermes-agent}
+      # 默认预选模型 ID（DeepSeek 真实模型名，用户能看懂）
+      - DEFAULT_MODELS=${DEFAULT_MODELS_FRONTEND:-deepseek-v4-flash}
       # 模型选择器置顶
-      - DEFAULT_PINNED_MODELS=hermes-agent
+      - DEFAULT_PINNED_MODELS=deepseek-v4-flash,deepseek-v4-pro
       # 联网搜索默认启用（配合 SearXNG profile 使用）
       - ENABLE_RAG_WEB_SEARCH=true
       # SearXNG 后端（仅 --profile full 启用 SearXNG 时生效）
       - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
     volumes:
       - open-webui-data:/app/backend/data
-    depends_on:
-      hermes:
-        condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

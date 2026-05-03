@@ -35,7 +35,7 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 - **多模态出图** — 支持 DALL-E、Stable Diffusion、ComfyUI 工作流
 - **三端使用** — 浏览器 + 桌面 App（Electron）+ 手机 PWA，数据同步
 
-## 架构
+## 架构（v0.3.0 简化版）
 
 ```
 ┌──────────────────────────────┐
@@ -46,21 +46,29 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 │ Open WebUI v0.9.2 (终端层)    │
 │ • 多用户登录 / RBAC          │
 │ • 中文 PDF / 知识库 RAG      │
+│ • 联网搜索 / 代码执行         │
 │ • 多模态 / 桌面 App / PWA    │
 └──────────────────────────────┘
-              ↓ OpenAI API
+              ↓ OpenAI 兼容 API
 ┌──────────────────────────────┐
-│ Hermes Agent v0.11 (内核层)   │
-│ • Memory + Skills + Cron     │
-│ • 钉钉/飞书/企微/邮件/QQ      │
-└──────────────────────────────┘
-              ↓
-┌──────────────────────────────┐
-│ DeepSeek V4 Flash (模型层)    │
+│ DeepSeek V4 Flash / Pro       │
+│ api.deepseek.com (云)         │
 └──────────────────────────────┘
 ```
 
-三层分离：终端层负责交互，内核层负责 Agent 逻辑和外部集成，模型层提供推理能力。你可以单独升级任何一层而不影响其他层。
+**默认两层架构**：Open WebUI 直连 DeepSeek，简单清晰。
+
+### 可选高级层（`docker compose --profile advanced up -d`）
+
+```
+[Hermes Agent v0.11]  ← 用户接钉钉/飞书/企微/QQ Bot 时启用
+   • 后台 Cron 任务推送
+   • Memory 跨会话记忆
+   • Skills 工具扩展
+   • 16 个 IM 平台桥接
+```
+
+> **注意**：Hermes 不原生支持 DeepSeek 作为 LLM provider。启用 advanced profile 需要额外配 OpenRouter / Anthropic / Kimi 等 API key。普通用户用 DeepSeek 直连即可，**不需要 Hermes**。
 
 ## 5 分钟快速开始
 
