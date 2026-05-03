@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# 解析参数：--advanced 进入完整询问模式；默认极简
+SETUP_MODE="simple"
+if [[ "${1:-}" == "--advanced" || "${1:-}" == "-a" ]]; then
+    SETUP_MODE="advanced"
+fi
+
 # ============================================================
 # OpenDeepSeek — One-Click Setup
 # ============================================================
@@ -67,6 +73,11 @@ ok "Docker Compose 可用"
 # ============================================================
 progress "配置参数..."
 
+if [[ "$SETUP_MODE" == "simple" ]]; then
+    info "极简模式：只需输入 API Key（其他自动智能默认）"
+    info "高级模式：./setup.sh --advanced（保留所有询问）"
+fi
+
 info "默认采用'家庭单用户模式'：访问 http://localhost:3000 无需注册即可使用"
 info "如需团队多用户模式（含登录注册），稍后选择部署模式时选 2"
 
@@ -83,84 +94,110 @@ if [[ -f "$ENV_FILE" ]]; then
 fi
 
 if [[ -z "$SKIP_CONFIG" ]]; then
-    # 1. DeepSeek API Key
-    echo ""
-    info "请输入 DeepSeek API Key（获取地址：https://platform.deepseek.com/api_keys）"
-    read -rsp "DeepSeek API Key: " DEEPSEEK_API_KEY
-    echo ""
-    if [[ -z "$DEEPSEEK_API_KEY" ]]; then
-        err "DeepSeek API Key 不能为空"
-        exit 1
-    fi
-    ok "API Key 已接收"
+    if [[ "$SETUP_MODE" == "simple" ]]; then
+        # ── 极简模式：只问 API key ──
+        echo ""
+        info "正在配置（默认家庭模式 + 中文优化 + DeepSeek V4 Flash）"
+        info "如需调整，下次跑 ./setup.sh --advanced"
+        echo ""
+        info "请粘贴你的 DeepSeek API Key（platform.deepseek.com 注册免费获取）"
+        read -rsp "API Key: " DEEPSEEK_API_KEY
+        echo ""
+        if [[ -z "$DEEPSEEK_API_KEY" ]]; then
+            err "API Key 不能为空"
+            exit 1
+        fi
+        ok "API Key 已接收"
 
-    # 2. Model selection
-    echo ""
-    info "选择默认模型："
-    echo "  1) deepseek-v4-flash（推荐，便宜快速）"
-    echo "  2) deepseek-v4-pro（推理更强）"
-    read -rp "请输入选项 [1/2，默认 1]: " MODEL_CHOICE
-    case "${MODEL_CHOICE:-1}" in
-        2)
-            DEFAULT_MODEL="deepseek-v4-pro"
-            ;;
-        1|"")
-            DEFAULT_MODEL="deepseek-v4-flash"
-            ;;
-        *)
-            warn "无效选项，使用默认模型 deepseek-v4-flash"
-            DEFAULT_MODEL="deepseek-v4-flash"
-            ;;
-    esac
-    ok "默认模型: ${DEFAULT_MODEL}"
-
-    # 3. China mode
-    echo ""
-    info "是否启用中文优化模式？（启用 SearXNG 搜索引擎 + zh-CN 本地化）"
-    read -rp "[Y/n，默认 Y]: " CHINA_MODE
-    case "${CHINA_MODE:-Y}" in
-        [Nn]*)
-            ENABLE_CHINA_MODE="false"
-            ;;
-        *)
-            ENABLE_CHINA_MODE="true"
-            ;;
-    esac
-    if [[ "$ENABLE_CHINA_MODE" == "true" ]]; then
-        ok "中文优化模式: 已启用"
-    else
-        info "中文优化模式: 未启用"
-    fi
-
-    # 4. Deploy mode
-    echo ""
-    info "选择部署模式："
-    echo "  1) 家庭单用户（推荐，零登录门槛）"
-    echo "  2) 团队多用户（需注册管理员账号）"
-    read -rp "请输入选项 [1/2，默认 1]: " DEPLOY_MODE_CHOICE
-    case "${DEPLOY_MODE_CHOICE:-1}" in
-        2)
-            WEBUI_AUTH="true"
-            DEPLOY_MODE_LABEL="团队多用户"
-            ;;
-        *)
-            WEBUI_AUTH="false"
-            DEPLOY_MODE_LABEL="家庭单用户"
-            ;;
-    esac
-    ok "部署模式: ${DEPLOY_MODE_LABEL}"
-
-    # 5. IM placeholder
-    echo ""
-    info "OpenDeepSeek 支持把 Agent 接入钉钉/飞书/企微/邮件/QQ Bot/Matrix"
-    info "（需要后续在 .env 里配置 Bot Token）"
-    read -rp "是否现在添加 IM 配置占位模板？ [y/N，默认 N]: " IM_MODE
-    if [[ "$IM_MODE" =~ ^[Yy]$ ]]; then
-        ADD_IM_PLACEHOLDER=1
-        ok "IM 占位配置将写入 .env"
-    else
+        # 智能默认
+        DEFAULT_MODEL="deepseek-v4-flash"
+        ENABLE_CHINA_MODE="true"
         ADD_IM_PLACEHOLDER=0
-        info "IM 配置跳过（后续可手动添加）"
+        WEBUI_AUTH="false"
+        DEPLOY_MODE_LABEL="家庭单用户"
+        ok "已自动选择：家庭单用户模式（零门槛访问）+ 中文优化 + DeepSeek V4 Flash"
+    else
+        # ── 高级模式：保留现有 5 问题完整流程 ──
+
+        # 1. DeepSeek API Key
+        echo ""
+        info "请输入 DeepSeek API Key（获取地址：https://platform.deepseek.com/api_keys）"
+        read -rsp "DeepSeek API Key: " DEEPSEEK_API_KEY
+        echo ""
+        if [[ -z "$DEEPSEEK_API_KEY" ]]; then
+            err "DeepSeek API Key 不能为空"
+            exit 1
+        fi
+        ok "API Key 已接收"
+
+        # 2. Model selection
+        echo ""
+        info "选择默认模型："
+        echo "  1) deepseek-v4-flash（推荐，便宜快速）"
+        echo "  2) deepseek-v4-pro（推理更强）"
+        read -rp "请输入选项 [1/2，默认 1]: " MODEL_CHOICE
+        case "${MODEL_CHOICE:-1}" in
+            2)
+                DEFAULT_MODEL="deepseek-v4-pro"
+                ;;
+            1|"")
+                DEFAULT_MODEL="deepseek-v4-flash"
+                ;;
+            *)
+                warn "无效选项，使用默认模型 deepseek-v4-flash"
+                DEFAULT_MODEL="deepseek-v4-flash"
+                ;;
+        esac
+        ok "默认模型: ${DEFAULT_MODEL}"
+
+        # 3. China mode
+        echo ""
+        info "是否启用中文优化模式？（启用 SearXNG 搜索引擎 + zh-CN 本地化）"
+        read -rp "[Y/n，默认 Y]: " CHINA_MODE
+        case "${CHINA_MODE:-Y}" in
+            [Nn]*)
+                ENABLE_CHINA_MODE="false"
+                ;;
+            *)
+                ENABLE_CHINA_MODE="true"
+                ;;
+        esac
+        if [[ "$ENABLE_CHINA_MODE" == "true" ]]; then
+            ok "中文优化模式: 已启用"
+        else
+            info "中文优化模式: 未启用"
+        fi
+
+        # 4. Deploy mode
+        echo ""
+        info "选择部署模式："
+        echo "  1) 家庭单用户（推荐，零登录门槛）"
+        echo "  2) 团队多用户（需注册管理员账号）"
+        read -rp "请输入选项 [1/2，默认 1]: " DEPLOY_MODE_CHOICE
+        case "${DEPLOY_MODE_CHOICE:-1}" in
+            2)
+                WEBUI_AUTH="true"
+                DEPLOY_MODE_LABEL="团队多用户"
+                ;;
+            *)
+                WEBUI_AUTH="false"
+                DEPLOY_MODE_LABEL="家庭单用户"
+                ;;
+        esac
+        ok "部署模式: ${DEPLOY_MODE_LABEL}"
+
+        # 5. IM placeholder
+        echo ""
+        info "OpenDeepSeek 支持把 Agent 接入钉钉/飞书/企微/邮件/QQ Bot/Matrix"
+        info "（需要后续在 .env 里配置 Bot Token）"
+        read -rp "是否现在添加 IM 配置占位模板？ [y/N，默认 N]: " IM_MODE
+        if [[ "$IM_MODE" =~ ^[Yy]$ ]]; then
+            ADD_IM_PLACEHOLDER=1
+            ok "IM 占位配置将写入 .env"
+        else
+            ADD_IM_PLACEHOLDER=0
+            info "IM 配置跳过（后续可手动添加）"
+        fi
     fi
 
     # ============================================================
@@ -312,6 +349,10 @@ else
     echo -e "  ${YELLOW}首次访问需注册管理员账号${NC}"
 fi
 echo ""
+if [[ "$SETUP_MODE" == "simple" ]]; then
+    echo -e "  ${YELLOW}下次想调整模式？${NC}  ./setup.sh --advanced"
+    echo ""
+fi
 echo -e "${GREEN}──────────────────────────────────────────────────────${NC}"
 echo -e "${GREEN}常用命令${NC}"
 echo -e "${GREEN}──────────────────────────────────────────────────────${NC}"

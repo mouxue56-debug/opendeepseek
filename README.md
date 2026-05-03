@@ -64,24 +64,32 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 
 ## 5 分钟快速开始
 
-### 一键安装（推荐）
+### 极简版（推荐小白）
 
 ```bash
-git clone https://github.com/your-org/opendeepseek.git
+git clone https://github.com/yourusername/opendeepseek.git
 cd opendeepseek
 ./setup.sh
-# 按提示填入 DeepSeek API Key，完成
+# 只需粘贴一次 DeepSeek API Key，其他全部自动智能默认
 ```
 
-### 手动安装
+完成后浏览器自动打开 http://localhost:3000，**直接对话不用注册**。
+
+### 高级版（懂技术的用户）
 
 ```bash
-git clone https://github.com/your-org/opendeepseek.git
+./setup.sh --advanced
+# 完整 5 项配置询问：模型 / 中文模式 / IM 占位 / 部署模式 / API Key
+```
+
+### 手动安装（最低控制）
+
+```bash
+git clone https://github.com/yourusername/opendeepseek.git
 cd opendeepseek
 cp .env.example .env
 # 编辑 .env，填入 DEEPSEEK_API_KEY
 docker compose up -d
-# 访问 http://localhost:3000
 ```
 
 ## 核心特性
@@ -105,10 +113,24 @@ docker compose up -d
 
 ## 文档
 
+### 👶 小白必读（不懂技术也能看懂）
+- **[小白使用手册](docs/USER-GUIDE.md)** — 30 秒上手 + Open WebUI 30+ 英文术语对照表 + 常用功能怎么用
+- **[出错怎么办](docs/TROUBLESHOOT.md)** — 15 个常见错误的中文大白话排错指南
+- **[样例 Prompt 集](docs/PROMPT-COOKBOOK.md)** — 15 个中国普通用户场景（写周报/翻译/旅游攻略...）复制即用
+- **[一键部署完整指南](docs/ONE-CLICK.md)** — macOS / Linux / Windows WSL2 各平台命令
+
+### 📦 部署 / 运维
 - [安装指南](docs/INSTALL.md) — 详细安装步骤和排错
-- [常见问题 FAQ](docs/FAQ.md) — 安装失败、网络问题、模型报错
-- [IM 桥接配置](docs/IM-BRIDGE.md) — 钉钉 / 飞书 / 企微 / QQ 接入教程
+- [常见问题 FAQ](docs/FAQ.md) — 12+ 主题分组的常见问题
+- [安全配置](docs/SECURITY.md) — 公网部署加固清单 + Tailscale 推荐
+- [IM 桥接配置](docs/IM-BRIDGE.md) — 钉钉 / 飞书 / 企微 / 邮件 / QQ Bot 接入
 - [中国网络优化](docs/CHINA-NETWORK.md) — 镜像源、代理配置、DNS 优化
+
+### 🛠️ 进阶 / 开发者
+- [架构深度文档](docs/ARCHITECTURE.md) — 设计哲学 / 数据流 / 容器拓扑 / 扩展点
+- [贡献指南](CONTRIBUTING.md) — 提 PR 流程 + commit message 规范
+- [用 Qwen3.6 review 项目](docs/QWEN-REVIEW.md) — OpenClaw + 阿里云 Coding Plan 合规调用
+- [多模型协作工作流](docs/MULTI-MODEL-WORKFLOW.md) — Kimi/Qwen/GLM/MiniMax + Claude 协作模板（可复用）
 
 ## ⚠️ 重要提示：模型迁移
 
