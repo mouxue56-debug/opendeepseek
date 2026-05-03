@@ -24,12 +24,12 @@ fail() { echo -e "${RED}❌ $1${NC}"; FAIL=$((FAIL+1)); }
 info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
 
 echo "════════════════════════════════════════════"
-echo "   OpenDeepSeek Smoke Test (v0.4.0 - 三层架构)"
+echo "   OpenDeepSeek Smoke Test (v0.4.2 - Smart Bridge 架构)"
 echo "════════════════════════════════════════════"
 echo ""
 
 # 1. .env 存在
-info "[1/8] 检查 .env 文件"
+info "[1/9] 检查 .env 文件"
 if [[ -f .env ]] && grep -v '^\s*#' .env | grep -qE "^DEEPSEEK_API_KEY[[:space:]]*=" && ! grep -q "DEEPSEEK_API_KEY=your-deepseek-api-key-here" .env; then
     ok ".env 配置完毕"
 else
@@ -37,13 +37,19 @@ else
     exit 1
 fi
 
-# 2. 三个容器状态（hermes + open-webui）
-info "[2/8] 检查容器状态"
+# 2. 三个容器状态（hermes + hermes-bridge + open-webui）
+info "[2/9] 检查容器状态"
 RUNNING=$(docker compose ps --status running --format json 2>/dev/null)
 if echo "$RUNNING" | grep -q opendeepseek-hermes; then
     ok "hermes 容器运行中"
 else
     fail "hermes 容器未运行（试试 docker compose up -d）"
+    exit 1
+fi
+if echo "$RUNNING" | grep -q opendeepseek-hermes-bridge; then
+    ok "hermes-bridge 容器运行中（图片 OCR + 智能路由）"
+else
+    fail "hermes-bridge 容器未运行"
     exit 1
 fi
 if echo "$RUNNING" | grep -q opendeepseek-webui; then
@@ -54,23 +60,31 @@ else
 fi
 
 # 3. Hermes 健康端点
-info "[3/8] 检查 Hermes 健康端点"
+info "[3/9] 检查 Hermes 健康端点"
 if curl -fsS http://localhost:8642/health > /dev/null 2>&1; then
     ok "Hermes /health 返回 OK"
 else
     fail "Hermes /health 不通"
 fi
 
-# 4. Open WebUI 可达
-info "[4/8] 检查 Open WebUI 网页"
+# 4. Smart Bridge 健康端点
+info "[4/9] 检查 Hermes Smart Bridge 健康端点"
+if docker compose exec -T hermes-bridge python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')" > /dev/null 2>&1; then
+    ok "hermes-bridge /health 返回 OK"
+else
+    fail "hermes-bridge /health 不通"
+fi
+
+# 5. Open WebUI 可达
+info "[5/9] 检查 Open WebUI 网页"
 if curl -fsS http://localhost:3000 > /dev/null 2>&1; then
     ok "Open WebUI :3000 可访问"
 else
     fail "Open WebUI :3000 不通"
 fi
 
-# 5. Hermes 模型列表（应该暴露 hermes-agent）
-info "[5/8] 检查 Hermes 暴露的模型"
+# 6. Hermes 模型列表（应该暴露 hermes-agent）
+info "[6/9] 检查 Hermes 暴露的模型"
 HERMES_KEY=$(grep -m1 "^HERMES_API_KEY=" .env | cut -d'=' -f2- | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']|["'"'"']$//g')
 MODELS_RESP=$(curl -fsS http://localhost:8642/v1/models -H "Authorization: Bearer ${HERMES_KEY}" 2>&1 || echo "FAIL")
 if echo "$MODELS_RESP" | grep -q "hermes-agent"; then
@@ -80,35 +94,49 @@ else
     echo "    响应：$(echo "$MODELS_RESP" | head -c 200)"
 fi
 
-# 6. 真实端到端：用户消息 → Open WebUI → Hermes → DeepSeek → 回复
+# 7. 真实端到端：普通问答 → Bridge → DeepSeek 轻量路径
 # 这是项目核心架构验证，不能假阳性
-info "[6/8] 真实端到端：Hermes → DeepSeek 调用"
+info "[7/9] 真实端到端：Smart Bridge → DeepSeek 轻量问答"
 TMP_RESP=$(mktemp)
-curl -fsS http://localhost:8642/v1/chat/completions \
-    -H "Authorization: Bearer ${HERMES_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "model": "hermes-agent",
-      "messages": [{"role":"user","content":"用一个汉字回答：你好"}],
+docker compose exec -T -e HERMES_KEY="${HERMES_KEY}" hermes-bridge python - <<'PY' > "$TMP_RESP" 2>&1 || echo "FAIL"
+import json
+import os
+import urllib.request
+
+payload = {
+      "model": "deepseek-v4-flash",
+      "messages": [{"role":"user","content":"Output exactly these two ASCII letters and nothing else: OK"}],
       "max_tokens": 30
-    }' > "$TMP_RESP" 2>&1 || echo "FAIL"
+}
+req = urllib.request.Request(
+    "http://localhost:8765/v1/chat/completions",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={
+        "Authorization": "Bearer " + os.environ["HERMES_KEY"],
+        "Content-Type": "application/json",
+    },
+)
+with urllib.request.urlopen(req, timeout=180) as resp:
+    print(resp.read().decode("utf-8"))
+PY
 
 # 用 jq 提取 content（避免 zsh locale 问题）
 REPLY=$(jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // ""' "$TMP_RESP" 2>/dev/null)
 USAGE=$(jq -r '.usage.prompt_tokens // 0' "$TMP_RESP" 2>/dev/null)
 rm -f "$TMP_RESP"
+REPLY_COMPACT=$(echo "$REPLY" | tr -d '[:space:]')
 
-# 严格检查：内容存在 + 不是错误字符串 + prompt_tokens > 0（说明真的过了 Hermes Agent 内核）
-if [[ -n "$REPLY" ]] && [[ "$REPLY" != *"Error"* ]] && [[ "$REPLY" != *"401"* ]] && [[ "$REPLY" != *"400"* ]] && [[ "$USAGE" -gt 0 ]]; then
-    ok "真实端到端通：Hermes → DeepSeek 回复「$REPLY」（${USAGE} prompt tokens 经 Hermes 内核）"
+# 严格检查：内容存在 + 不是错误字符串 + prompt_tokens 合理偏小（说明普通问答没有背 Hermes 工具上下文）
+if [[ "$REPLY_COMPACT" == "OK" ]] && [[ "$USAGE" -gt 0 ]] && [[ "$USAGE" -lt 1000 ]]; then
+    ok "轻量问答链路通：Bridge → DeepSeek 返回严格 OK（${USAGE} prompt tokens）"
 else
-    fail "端到端调用失败"
+    fail "轻量问答链路失败或误走完整 Hermes 上下文"
     echo "    回复: $REPLY"
     echo "    prompt_tokens: $USAGE"
 fi
 
-# 7. Hermes Skills 激活验证（Cron）
-info "[7/8] 验证 Hermes Skills 是否激活（Cron skill）"
+# 8. Hermes Skills 激活验证（Cron）
+info "[8/9] 验证 Hermes Skills 是否激活（Cron skill）"
 TMP_CRON=$(mktemp)
 curl -fsS http://localhost:8642/v1/chat/completions \
     -H "Authorization: Bearer ${HERMES_KEY}" \
@@ -130,8 +158,8 @@ else
     info "（首次启动 skills 索引可能未就绪，等 1-2 分钟再测）"
 fi
 
-# 8. 真 Agent 文件系统权限：/host 是否挂载，Hermes 是否能从 API 侧使用工具看到它
-info "[8/8] 验证 Hermes 本机文件系统权限（/host）"
+# 9. 真 Agent 文件系统权限：/host 是否挂载，Bridge 是否能把任务路由到 Hermes 并实际写文件
+info "[9/9] 验证 Smart Bridge → Hermes 本机文件系统权限（/host）"
 if docker compose exec -T hermes test -d /host; then
     ok "Hermes 容器已挂载 /host"
 else
@@ -139,23 +167,48 @@ else
 fi
 
 TMP_HOST=$(mktemp)
-curl -fsS http://localhost:8642/v1/chat/completions \
-    -H "Authorization: Bearer ${HERMES_KEY}" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "model": "hermes-agent",
-      "messages": [{"role":"user","content":"请实际调用 terminal 工具运行 pwd 和 test -d /host。不要列任何文件名；如果 /host 存在，只回答 HOST_READY；否则回答 HOST_MISSING。"}],
-      "max_tokens": 300
-    }' > "$TMP_HOST" 2>&1 || echo "FAIL"
+docker compose exec -T -e HERMES_KEY="${HERMES_KEY}" hermes-bridge python - <<'PY' > "$TMP_HOST" 2>&1 || echo "FAIL"
+import json
+import os
+import urllib.request
+
+payload = {
+      "model": "deepseek-v4-flash",
+      "messages": [{"role":"user","content":"请用 Hermes agent 在 /host/OpenDeepSeek-Outputs/smoke-agent-route.txt 写入 HOST_READY，只回复文件路径。"}],
+      "max_tokens": 500
+}
+req = urllib.request.Request(
+    "http://localhost:8765/v1/chat/completions",
+    data=json.dumps(payload).encode("utf-8"),
+    headers={
+        "Authorization": "Bearer " + os.environ["HERMES_KEY"],
+        "Content-Type": "application/json",
+    },
+)
+with urllib.request.urlopen(req, timeout=240) as resp:
+    print(resp.read().decode("utf-8"))
+PY
 
 HOST_REPLY=$(jq -r '.choices[0].message.content // .choices[0].message.reasoning_content // ""' "$TMP_HOST" 2>/dev/null)
 rm -f "$TMP_HOST"
 
-if echo "$HOST_REPLY" | grep -q "HOST_READY"; then
-    ok "Hermes API 侧能通过工具访问 /host（真 Agent 文件权限已通）"
+if docker compose exec -T hermes test -f /host/OpenDeepSeek-Outputs/smoke-agent-route.txt \
+    && docker compose exec -T hermes grep -q "HOST_READY" /host/OpenDeepSeek-Outputs/smoke-agent-route.txt; then
+    ok "Bridge 已把真任务路由到 Hermes，且 Hermes 实际写入 /host 文件"
 else
-    fail "Hermes API 侧未确认 /host 权限"
+    fail "Hermes Agent 未实际写入 /host 文件"
     echo "    回复: $(echo "$HOST_REPLY" | head -c 200)"
+fi
+
+HOST_DISPLAY_PREFIX=$(grep -m1 "^OPDS_HOST_DISPLAY_PREFIX=" .env | cut -d'=' -f2- | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']|["'"'"']$//g')
+if [[ -n "$HOST_DISPLAY_PREFIX" ]] && [[ "$HOST_DISPLAY_PREFIX" != "/host" ]]; then
+    if echo "$HOST_REPLY" | grep -Fq "$HOST_DISPLAY_PREFIX/OpenDeepSeek-Outputs/smoke-agent-route.txt"; then
+        ok "Hermes 回复包含用户本机可找路径（不只给 /host 容器路径）"
+    else
+        fail "Hermes 回复没有包含本机路径提示"
+        echo "    期望包含: $HOST_DISPLAY_PREFIX/OpenDeepSeek-Outputs/smoke-agent-route.txt"
+        echo "    回复: $(echo "$HOST_REPLY" | head -c 300)"
+    fi
 fi
 
 echo ""

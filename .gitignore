@@ -60,6 +60,8 @@ my-tools/
 agent-files/*
 !agent-files/.gitkeep
 benchmark-results/
+browser-e2e-results.json
+browser-e2e-transcript.md
 .claude/
 .planning/
 debug-log.md

@@ -1,6 +1,6 @@
 # 安全配置指南
 
-> 本指南对应 OpenDeepSeek v0.2.x。  
+> 本指南对应 OpenDeepSeek v0.4.x。
 > 默认部署模式针对**本地家庭使用**优化，云端 / 公网部署必须按本指南加固。
 
 ---
@@ -109,6 +109,8 @@ HERMES_HOST_DIR=/Users/你的用户名
 /host/Downloads
 /host/OpenDeepSeek-Outputs
 ```
+
+项目内置演示 skills 也会以可写方式挂载到 `/opt/data/skills/opendeepseek`。这是为了让 Hermes 的 `skill_manage` 能更新模板、修复 demo、沉淀新方法；它属于 Agent 能力的一部分，不是普通聊天 UI 的装饰。
 
 如果你想收窄权限，改成专用目录：
 

@@ -8,7 +8,7 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/main/install.sh)
 ```
 
-无需懂 Docker，自动检测系统 + 安装 + 启动 + 打开浏览器。**默认家庭模式**：访问 http://localhost:3000 直接对话，**不需要注册**。
+无需懂 Docker。脚本会检测系统依赖、clone 项目、打开配置向导、启动容器、打开浏览器。**默认家庭模式**：访问 http://localhost:3000 直接对话，**不需要注册**。
 
 → 详细各平台一键命令见 [docs/ONE-CLICK.md](docs/ONE-CLICK.md)
 
@@ -36,7 +36,7 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 - **多模态出图** — 支持 DALL-E、Stable Diffusion、ComfyUI 工作流
 - **三端使用** — 浏览器 + 桌面 App（Electron）+ 手机 PWA，数据同步
 
-## 架构（v0.4.0 — 三件套真正打通）
+## 架构（v0.4.2 — 智能路由 + Agent 真打通）
 
 ```
 ┌──────────────────────────────┐
@@ -53,6 +53,21 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 └──────────────────────────────┘
               ↓ OpenAI 兼容 API（hermes-agent model）
 ┌──────────────────────────────┐
+│ Hermes Smart Bridge           │
+│ • 图片落盘到 /host            │
+│ • 中文/英文 OCR               │
+│ • image_url → 文本路径摘要     │
+│ • 普通问答直连 DeepSeek        │
+│ • 真任务自动转 Hermes Agent    │
+└──────────────────────────────┘
+       ↓ 普通问答             ↓ 文件/提醒/记忆/图片/工具
+┌──────────────────────────────┐
+│ DeepSeek V4 Flash             │
+│ • 轻量聊天低延迟              │
+│ • thinking 默认关闭           │
+└──────────────────────────────┘
+                              ↓
+┌──────────────────────────────┐
 │ Hermes Agent v0.11 (内核层)   │
 │ • Memory 跨会话记忆           │
 │ • Skills 自学习扩展           │
@@ -68,15 +83,18 @@ OpenDeepSeek 是一个**本地部署的 AI Agent 平台** — 你可以把它理
 └──────────────────────────────┘
 ```
 
-**三层各司其职**：
+**四层各司其职**：
 - **终端层**（Open WebUI）= 用户体验：网页/PWA/桌面 App / 知识库 / 多模态
+- **智能桥接层**（Hermes Smart Bridge）= 图片落盘 OCR + 路由判断：普通问答走轻量直连，真任务进 Hermes
 - **内核层**（Hermes）= Agent 大脑：Memory/Skills/Cron/Subagent，用 DeepSeek 当 LLM
 - **模型层**（DeepSeek V4）= 推理引擎：1/9 GPT-4o 价格
 
 **用户在 Open WebUI 里直接说话**：
+- "你好，解释一下..." → Smart Bridge 直连 DeepSeek，少 token、快响应、支持流式
 - "30 分钟后提醒我喝水" → Hermes Cron skill 真创建任务，到时推送
 - "记住我喜欢咖啡" → Hermes Memory 跨会话持久化
 - "看看 /host/Desktop 有什么，帮我整理方案" → Hermes file/terminal 工具真检查本机文件
+- "根据这两张截图做网页 PPT" → Smart Bridge 本地解析图片，Hermes 生成文件
 - "同时帮我对比这 5 个" → Hermes Subagent 并行分析
 
 ✨ **可选**：`docker compose --profile full up -d` 加 SearXNG（联网搜索后端）
@@ -156,7 +174,7 @@ docker compose up -d
 
 ## ⚠️ 重要提示：模型迁移
 
-本项目默认使用 `deepseek-v4-flash`。旧的 `deepseek-chat` 和 `deepseek-reasoner` 已于 **2026-07-24 退役**，请勿继续使用。升级方法：在 `.env` 中将 `MODEL_NAME` 改为 `deepseek-v4-flash` 或 `deepseek-v4`，然后 `docker compose restart`。
+本项目默认使用 `deepseek-v4-flash`。`deepseek-chat` 和 `deepseek-reasoner` 将于 **2026-07-24 弃用**；出于兼容，二者目前分别对应 `deepseek-v4-flash` 的非思考 / 思考模式。OpenDeepSeek 优先使用官方新模型名；若某个旧 Hermes provider 暂时不识别新名，可临时用兼容别名兜底，但项目文档和默认配置不再推荐旧名。
 
 ## 贡献
 

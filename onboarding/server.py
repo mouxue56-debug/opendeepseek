@@ -75,6 +75,15 @@ def _write_env(deepseek_api_key: str, model: str):
     updates = {
         "DEEPSEEK_API_KEY": existing["DEEPSEEK_API_KEY"],
         "DEFAULT_MODEL": existing["DEFAULT_MODEL"],
+        "ENABLE_TITLE_GENERATION": "false",
+        "ENABLE_TAGS_GENERATION": "false",
+        "ENABLE_FOLLOW_UP_GENERATION": "false",
+        "ENABLE_LIGHTWEIGHT_ROUTING": "true",
+        "HERMES_AGENT_MAX_TOKENS": "32768",
+        "HERMES_AGENT_STREAM": "false",
+        "OPDS_SHARED_MEMORY_PATH": "/host/OpenDeepSeek-Memory/profile.md",
+        "OPDS_MEMORY_SNAPSHOT_MAX_CHARS": "4000",
+        "OPDS_HOST_DISPLAY_PREFIX": existing["HERMES_HOST_DIR"],
         "HERMES_API_KEY": existing["HERMES_API_KEY"],
         "WEBUI_SECRET_KEY": existing["WEBUI_SECRET_KEY"],
         "HERMES_HOST_DIR": existing["HERMES_HOST_DIR"],
@@ -106,7 +115,8 @@ def _normalize_model(model: str) -> str:
     """兼容旧表单值，但最终只写 DeepSeek V4 模型名。"""
     aliases = {
         "deepseek-chat": "deepseek-v4-flash",
-        "deepseek-reasoner": "deepseek-v4-pro",
+        # 2026-07-24 前的兼容别名：reasoner 是 V4 Flash 思考模式，不是 v4-pro。
+        "deepseek-reasoner": "deepseek-v4-flash",
     }
     model = aliases.get(model, model)
     if model not in {"deepseek-v4-flash", "deepseek-v4-pro"}:

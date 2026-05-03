@@ -191,6 +191,84 @@ docker compose logs hermes --tail 30
 - `insufficient balance` → DeepSeek 账户没钱了，去 platform.deepseek.com 充值
 - `connection timeout` → 网络连不上 DeepSeek，国内用户请看 docs/CHINA-NETWORK.md 配置代理
 
+### ❌ 症状：让 AI 生成网站/写文件一直失败，日志里有 `Read-only file system: '/opt/data/SOUL.md'`
+
+**原因**：Hermes Agent 运行时会确保 `/opt/data/SOUL.md` 存在并可写。如果 docker-compose 把 `hermes/SOUL.md` 挂成只读（`:ro`），所有需要进入 Hermes 的真任务都会 500，包括生成网站、读写 `/host`、图片任务、提醒和记忆。
+
+**解决**：
+```bash
+docker compose logs hermes --tail 80
+```
+如果看到 `Read-only file system: '/opt/data/SOUL.md'`，确认 `docker-compose.yml` 里这一行是 `:rw`：
+```yaml
+- ./hermes/SOUL.md:/opt/data/SOUL.md:rw
+```
+然后重建 Hermes：
+```bash
+docker compose up -d --force-recreate hermes hermes-bridge
+```
+最后跑：
+```bash
+bash scripts/smoke-test.sh
+```
+只要第 9 项显示 Smart Bridge 已把任务路由到 Hermes，并实际写入 `/host` 文件，生成网站能力就恢复了。
+
+### ❌ 症状：AI 说文件保存到了 `/host/...`，但我在电脑上找不到
+
+**原因**：`/host` 是 Docker 容器里的路径，不是 macOS Finder 里的真实路径。默认一键安装会把你的用户目录挂到容器的 `/host`，所以：
+
+```text
+/host/OpenDeepSeek-Outputs/site/index.html
+```
+
+通常对应：
+
+```text
+/Users/你的用户名/OpenDeepSeek-Outputs/site/index.html
+```
+
+**解决**：
+
+1. 先看 `.env` 里的 `HERMES_HOST_DIR`：
+
+```bash
+grep '^HERMES_HOST_DIR=' .env
+```
+
+2. 把 `/host` 替换成这个值。例如 `HERMES_HOST_DIR=/Users/lauralyu`，那么 `/host/OpenDeepSeek-Outputs/a.html` 就是 `/Users/lauralyu/OpenDeepSeek-Outputs/a.html`。
+3. 新版 Smart Bridge 会自动在 Hermes 回复后追加“本机可找路径”和 `file://` 打开地址。如果没有出现，重启 bridge：
+
+```bash
+docker compose up -d --build hermes-bridge
+```
+
+### ❌ 症状：让 AI 做很长的网站/PPT，最后空回复或说完成但文件不对
+
+**原因**：这通常不是 OpenWebUI 页面坏了，而是长 Agent 任务在 Hermes 内部被截断：常见日志包括 `Response truncated`、`Truncated tool call`、`Unknown tool 'web_search'`、`Iteration budget exhausted`。
+
+**解决**：
+
+```bash
+docker compose logs hermes --tail 120
+docker compose logs hermes-bridge --tail 80
+```
+
+确认 `.env` 里有这些默认值：
+
+```env
+HERMES_AGENT_MAX_TOKENS=32768
+HERMES_AGENT_STREAM=false
+OPDS_HOST_DISPLAY_PREFIX=/Users/你的用户名
+```
+
+然后重建 bridge：
+
+```bash
+docker compose up -d --build hermes-bridge
+```
+
+新版会做三件事：提高 Hermes 任务输出上限、让长 Agent 任务先完整执行再回传、要求 Hermes 在说“已保存”前验证文件存在且大小大于 0。特别复杂的网页/PPT，建议让它先生成大纲，再说“按这个大纲生成 HTML/PPT 文件”，成功率更高。
+
 ### ❌ 症状：上传 PDF 后 AI 说"我看不到内容"
 
 **原因**：知识库还没整理完文档 / 文档是扫描图片（里面的字没法直接读）

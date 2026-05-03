@@ -4,7 +4,7 @@
 
 | 项目 | 结果 |
 |---|---:|
-| 模型路径 | `hermes-agent` → `deepseek-v4-flash` |
+| 模型路径 | `hermes-agent` → Smart Bridge → Hermes/DeepSeek → `deepseek-v4-flash` |
 | 新会话数 | 10 |
 | 每个会话轮数 | 3 |
 | 总轮数 | 30 |
@@ -32,7 +32,7 @@
 ## 关键观察
 
 - 文件类任务已能真实写入 `/host/OpenDeepSeek-Outputs/benchmark`。
-- `/host/Desktop` 能通过 Hermes API 侧工具确认存在，说明 Open WebUI → Hermes → terminal/file 工具链打通。
+- `/host/Desktop` 能通过 Hermes API 侧工具确认存在，说明 Open WebUI → Smart Bridge → Hermes → terminal/file 工具链打通。
 - 当前 skills / system prompt 上下文较厚，复杂写作任务有明显长尾延迟；后续可优化默认 skill 注入和 benchmark prompt，降低 token 与延迟。
 
 ## 复现命令

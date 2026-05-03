@@ -1,8 +1,8 @@
 # OpenDeepSeek - docker-compose.yml
 # Project: OpenDeepSeek (一键部署本地 Agentic ChatGPT 替代品)
-# Version: v0.4.0 — 三层架构真正打通（Hermes 用 deepseek provider）
-# Architecture (默认): Open WebUI → Hermes Agent → DeepSeek API
-#                       (用户)        (Agent 内核)     (LLM)
+# Version: v0.4.2 — 智能路由 + Hermes Agent 真打通
+# Architecture (默认): Open WebUI → Smart Bridge → DeepSeek API（普通问答）
+#                                   └→ Hermes Agent → DeepSeek API（真任务）
 # Hermes Skills 全部活：Memory / Cron / Subagent / 16 IM 桥接 / Skills
 # Usage:
 #   docker compose up -d                          → 默认（含 Hermes Agent，普通用户）
@@ -70,10 +70,11 @@ services:
       # 注意：HERMES_HOST_DIR 指向的目录会被 Hermes Agent 读写；不要在无认证公网暴露本服务。
       - ${HERMES_HOST_DIR:-./agent-files}:/host:rw
       # OpenDeepSeek 默认演示 skills：让首屏 demo 真能照着流程执行。
-      - ./hermes/skills:/opt/data/skills/opendeepseek:ro
+      # Hermes 的 skill_manage 会写临时文件做原子更新，因此这里必须可写。
+      - ./hermes/skills:/opt/data/skills/opendeepseek:rw
       # 🎭 OpenDeepSeek 自定义 AI persona（自报身份 + 能力清单 + 模型路由建议）
-      # 改这个文件可以重塑 AI 行为；删除可恢复 Hermes 默认 persona
-      - ./hermes/SOUL.md:/opt/data/SOUL.md:ro
+      # Hermes 启动时会 ensure/write SOUL.md，因此这里必须可写，不能 :ro。
+      - ./hermes/SOUL.md:/opt/data/SOUL.md:rw
     healthcheck:
       test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8642/health')\" 2>/dev/null || exit 1"]
       interval: 30s
@@ -85,8 +86,49 @@ services:
       - opendeepseek-network
 
   # ═══════════════════════════════════════════════════════════════════════
+  # Hermes Smart Bridge
+  # Open WebUI 上传图片时会发送 OpenAI image_url content parts。
+  # DeepSeek V4 Flash 文本端点不应直接接收 image_url；本桥接层先把图片保存
+  # 到 /host/OpenDeepSeek-Inputs 并 OCR 成文本。
+  # 同时它会把普通问答直连 DeepSeek，把文件/提醒/记忆/图片/工具任务转给 Hermes。
+  # ═══════════════════════════════════════════════════════════════════════
+  hermes-bridge:
+    build:
+      context: ./bridge
+    container_name: opendeepseek-hermes-bridge
+    environment:
+      - HERMES_BASE_URL=http://hermes:8642/v1
+      - "HERMES_API_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
+      - "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek-v4-flash}
+      - ENABLE_LIGHTWEIGHT_ROUTING=${ENABLE_LIGHTWEIGHT_ROUTING:-true}
+      - HERMES_AGENT_MAX_TOKENS=${HERMES_AGENT_MAX_TOKENS:-32768}
+      - HERMES_AGENT_STREAM=${HERMES_AGENT_STREAM:-false}
+      - OPDS_SHARED_MEMORY_PATH=${OPDS_SHARED_MEMORY_PATH:-/host/OpenDeepSeek-Memory/profile.md}
+      - OPDS_MEMORY_SNAPSHOT_MAX_CHARS=${OPDS_MEMORY_SNAPSHOT_MAX_CHARS:-4000}
+      - OPDS_HOST_DISPLAY_PREFIX=${HERMES_HOST_DIR:-/host}
+      - IMAGE_BRIDGE_HOST_ROOT=/host
+      - IMAGE_BRIDGE_PUBLIC_HOST_PREFIX=/host
+      - IMAGE_BRIDGE_OCR_LANG=chi_sim+eng
+    volumes:
+      - ${HERMES_HOST_DIR:-./agent-files}:/host:rw
+    depends_on:
+      hermes:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8765/health')\" 2>/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - opendeepseek-network
+
+  # ═══════════════════════════════════════════════════════════════════════
   # Open WebUI v0.9.2 (用户界面)
-  # 把 Hermes Gateway 当作 OpenAI 兼容的"模型后端"调用
+  # 通过 Hermes Smart Bridge 调 DeepSeek/Hermes：
+  # 用户可以上传图片，Bridge 会先转成路径 + OCR 文本，避免 image_url 直撞 DeepSeek。
   # ═══════════════════════════════════════════════════════════════════════
   open-webui:
     image: ghcr.io/open-webui/open-webui:0.9.2
@@ -94,8 +136,10 @@ services:
     ports:
       - "${BIND_HOST:-127.0.0.1}:3000:8080"
     environment:
-      # 🔴 关键：把 Hermes 当 OpenAI 兼容模型源（不是直连 DeepSeek）
-      - OPENAI_API_BASE_URL=http://hermes:8642/v1
+      # 🔴 关键：Open WebUI → Smart Bridge
+      # 普通问答：Smart Bridge → DeepSeek V4 Flash
+      # 真任务：Smart Bridge → Hermes Agent → DeepSeek V4 Flash
+      - OPENAI_API_BASE_URL=http://hermes-bridge:8765/v1
       - "OPENAI_API_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
       - WEBUI_NAME=OpenDeepSeek
       - "WEBUI_SECRET_KEY=${WEBUI_SECRET_KEY:?Missing required: WEBUI_SECRET_KEY (run ./setup.sh)}"
@@ -109,6 +153,11 @@ services:
       # 默认预选模型（Hermes 暴露的 model id 是 hermes-agent）
       - DEFAULT_MODELS=${DEFAULT_MODELS_FRONTEND:-hermes-agent}
       - DEFAULT_PINNED_MODELS=hermes-agent
+      # 速度优先：Open WebUI 的标题/标签/追问会额外调用 hermes-agent。
+      # 在 Agent 架构里这会重复携带工具上下文，默认关闭，避免一次对话变多次慢请求。
+      - ENABLE_TITLE_GENERATION=${ENABLE_TITLE_GENERATION:-false}
+      - ENABLE_TAGS_GENERATION=${ENABLE_TAGS_GENERATION:-false}
+      - ENABLE_FOLLOW_UP_GENERATION=${ENABLE_FOLLOW_UP_GENERATION:-false}
       # 中文默认建议卡片：避免 Open WebUI 首屏残留英文模板
       - 'DEFAULT_PROMPT_SUGGESTIONS=[{"title":["整理我的桌面","真 Agent 文件系统演示"],"content":"请查看 /host/Desktop，但不要移动或删除任何文件。先按类型总结我的桌面有什么，再给我一个整理方案，并把方案写到 /host/OpenDeepSeek-Outputs/desktop-cleanup-plan.md"},{"title":["生成一个网页","一分钟做出可打开作品"],"content":"请在 /host/OpenDeepSeek-Outputs/site 里生成一个单文件中文个人主页 index.html，主题是「我用 DeepSeek V4 + Hermes 做个人 AI 助理」。要求手机端好看，可直接打开。"},{"title":["做一份视频文案","把乱语音变成爆款逻辑"],"content":"我会粘贴一段语音转录。请把它整理成 3 分钟中文视频脚本：开头钩子、痛点、解决方案、演示镜头、结尾号召，并保存到 /host/OpenDeepSeek-Outputs/video-script.md\n\n语音转录："},{"title":["创建真实提醒","Hermes Cron 不是口头答应"],"content":"请创建一个 10 分钟后的提醒：回来检查 OpenDeepSeek 手机上是否好用。请实际使用 cron 工具创建，并告诉我任务 ID。"},{"title":["生成周报草稿","从电脑文件名推工作线索"],"content":"请读取 /host/Desktop 或 /host/Documents 里和本周工作有关的文件名，不读取正文，帮我生成一份周报草稿到 /host/OpenDeepSeek-Outputs/weekly-report.md"},{"title":["记住我的偏好","长期记忆演示"],"content":"请记住：我偏好中文、直接、少废话、要真执行不要只解释。以后相关对话请主动参考这个偏好。"}]'
       # 联网搜索（配合 SearXNG profile 使用）
@@ -121,7 +170,7 @@ services:
       - ./webui/pwa-prompt.js:/app/build/static/pwa-prompt.js:ro    # PWA 引导脚本
       - ./webui/pwa-prompt.css:/app/build/static/pwa-prompt.css:ro  # PWA 引导样式（由 pwa-prompt.js 自动注入）
     depends_on:
-      hermes:
+      hermes-bridge:
         condition: service_healthy
     extra_hosts:
       - "host.docker.internal:host-gateway"

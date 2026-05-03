@@ -38,13 +38,17 @@
       <div class="logo-area">
         <div class="logo-emoji">OD</div>
         <h1 class="gradient-title">欢迎来到 OpenDeepSeek</h1>
-        <p class="subtitle">你的本地 AI 助手<br />三件套：Open WebUI × Hermes × DeepSeek V4</p>
+        <p class="subtitle">你的本地 AI 助手<br />Open WebUI × Smart Bridge × Hermes × DeepSeek V4</p>
       </div>
 
       <ul class="feature-list" aria-label="功能亮点">
         <li class="feature-item">
           <span class="feature-icon">🖥️</span>
           <span><strong>Open WebUI</strong> — 美观的对话界面，支持多模型</span>
+        </li>
+        <li class="feature-item">
+          <span class="feature-icon">🖼️</span>
+          <span><strong>Smart Bridge</strong> — 普通问答轻量直连，真任务进 Hermes；图片本地落盘 + OCR</span>
         </li>
         <li class="feature-item">
           <span class="feature-icon">⚡</span>
@@ -57,7 +61,7 @@
       </ul>
 
       <p class="subtitle" style="margin-bottom:24px;font-size:0.9rem;">
-        只需要一个 DeepSeek API Key，30 秒即可完成配置。Hermes 会获得你的本机家目录访问权，用于真正执行文件、代码和自动化任务。
+        只需要一个 DeepSeek API Key，30 秒即可完成配置。Hermes 会获得你的本机家目录访问权，用于真正执行文件、代码和自动化任务；Smart Bridge 会把上传图片保存到 /host/OpenDeepSeek-Inputs 并 OCR。
       </p>
 
       <button class="btn btn-primary" onclick="goStep(2)">
@@ -75,7 +79,7 @@
     <div class="step" id="step-2" aria-label="API Key 配置">
       <div style="margin-bottom:24px;">
         <h2 class="section-title">🔑 填写 DeepSeek API Key</h2>
-        <p class="section-desc">粘贴你的 API Key，系统将自动配置 Hermes Agent、Open WebUI 和本机文件访问</p>
+        <p class="section-desc">粘贴你的 API Key，系统将自动配置 Open WebUI、Smart Bridge、Hermes Agent 和本机文件访问</p>
       </div>
 
       <!-- 错误提示 -->
@@ -157,7 +161,7 @@
       </button>
 
       <p class="footer-note">
-        API Key 仅保存在本机 .env；Agent 会把你的家目录挂到容器内 /host，请不要无认证暴露到公网
+        API Key 仅保存在本机 .env；Agent 会把你的家目录挂到容器内 /host，图片会落到 /host/OpenDeepSeek-Inputs，请不要无认证暴露到公网
       </p>
     </div>
 

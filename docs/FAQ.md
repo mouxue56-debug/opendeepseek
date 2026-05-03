@@ -15,21 +15,21 @@
 
 ## 模型相关
 
-### Q: deepseek-chat 在 2026-07-24 退役，对我有什么影响？怎么迁移？
+### Q: deepseek-chat / deepseek-reasoner 在 2026-07-24 弃用，对我有什么影响？
 
-**影响**：2026-07-24 起，`deepseek-chat`（V3）和 `deepseek-reasoner`（R1）将停止服务，调用会返回 `410 Gone` 或降级到 V4-flash。
+**影响**：`deepseek-chat` 和 `deepseek-reasoner` 是兼容别名，将于 2026-07-24 弃用。出于兼容，二者目前分别对应 `deepseek-v4-flash` 的非思考 / 思考模式。OpenDeepSeek 默认使用官方新模型名 `deepseek-v4-flash`，避免用户后续迁移。
 
 **迁移步骤**：
 
 1. 修改 `.env` 中的模型别名：
    ```bash
-   # 旧配置（即将失效）
+   # 旧兼容别名（不推荐）
    DEFAULT_MODEL=deepseek-chat
 
    # 新配置（推荐）
    DEFAULT_MODEL=deepseek-v4-flash
-   # 或需要深度推理时
-   # DEFAULT_MODEL=deepseek-v4-pro
+   # 若旧 Hermes provider 暂时不识别新名，可临时用 deepseek-reasoner 兜底
+   # DEFAULT_MODEL=deepseek-reasoner
    ```
 2. 重启容器：
    ```bash
@@ -37,7 +37,7 @@
    ```
 3. 若之前保存了 `deepseek-chat` 的预设提示词，建议在新模型下重新测试效果（V4 的指令遵循能力更强，部分旧提示词可能需要精简）。
 
-> 退役公告详见：[DeepSeek 官方通知](https://platform.deepseek.com)（登录后查看「模型生命周期」页面）。
+> 原则：项目默认和文档都写新模型名；兼容别名只作为旧 provider 兜底，不作为新用户默认配置。
 
 ---
 
@@ -423,19 +423,21 @@ LOG_LEVEL=warning
 
 ### Q: Hermes Agent 是什么？为什么不直接用 Open WebUI 接 DeepSeek？
 
-Hermes 是 OpenDeepSeek 的 Agent 内核。v0.4.0 起默认路径是：
+Hermes 是 OpenDeepSeek 的 Agent 内核。v0.4.2 起默认路径是：
 
 ```
-用户 → Open WebUI → Hermes Agent → DeepSeek V4
+普通问答：用户 → Open WebUI → Smart Bridge → DeepSeek V4
+真任务：  用户 → Open WebUI → Smart Bridge → Hermes Agent → DeepSeek V4
 ```
 
-Open WebUI 负责网页/PWA/桌面体验；Hermes 负责 Memory、Skills、Cron、Subagent 和 IM 桥接；DeepSeek V4 负责推理。直接让 Open WebUI 接 DeepSeek 只能得到普通聊天，无法保证“提醒我喝水”这类请求真的进入 Hermes Cron skill。
+Open WebUI 负责网页/PWA/桌面体验、聊天历史、知识库和上传；Smart Bridge 负责图片落盘 OCR 与智能路由，普通问答直连 DeepSeek，真任务进入 Hermes；Hermes 负责 Memory、Skills、Cron、Subagent 和 IM 桥接；DeepSeek V4 负责推理。直接让 Open WebUI 接 DeepSeek 只能得到普通聊天，无法保证“提醒我喝水”这类请求真的进入 Hermes Cron skill。
 
 **关键数据流**：
 
 ```
 普通网页对话：
-用户 → Open WebUI → Hermes → DeepSeek → Hermes 工具/记忆 → Open WebUI
+用户 → Open WebUI → Smart Bridge → DeepSeek（普通问答）
+用户 → Open WebUI → Smart Bridge → Hermes → DeepSeek → Hermes 工具/记忆 → Open WebUI（真任务）
 
 IM/Cron：
 钉钉/飞书用户 @bot → Hermes → DeepSeek → Cron/Memory/Skill → 推送回 IM
@@ -456,7 +458,7 @@ Hermes 使用原生 `deepseek` provider，复用 `.env` 里的 `DEEPSEEK_API_KEY
 | 对比项 | 默认部署 | full profile |
 |--------|---------|-----------------|
 | **启动命令** | `docker compose up -d` | `docker compose --profile full up -d` |
-| **容器数** | 2（Hermes + Open WebUI） | 3（+ SearXNG） |
+| **容器数** | 3（Hermes + Smart Bridge + Open WebUI） | 4（+ SearXNG） |
 | **内存占用** | ~3G（最低） | ~4G（最低） |
 | **LLM provider** | Hermes 原生 deepseek provider | 同默认 |
 | **普通网页对话** | ✅ | ✅ |

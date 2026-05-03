@@ -1,8 +1,8 @@
 # OpenDeepSeek 安装指南
 
-> 一键部署本地 Agentic ChatGPT 替代品  
-> 架构（v0.4.0 默认）：Open WebUI ⟶ Hermes Agent ⟶ DeepSeek V4 Flash  
-> Hermes 默认启用，负责 Memory / Skills / Cron / Subagent / IM 桥接
+> 一键部署本地 Agentic ChatGPT 替代品
+> 架构（v0.4.2 默认）：Open WebUI ⟶ Hermes Smart Bridge ⟶ DeepSeek V4 Flash（普通问答）/ Hermes Agent（真任务）
+> Smart Bridge 负责图片落盘 OCR + 智能路由，Hermes 负责 Memory / Skills / Cron / Subagent / IM 桥接
 
 ---
 
@@ -43,7 +43,7 @@ chmod +x setup.sh
 1. 检查 Docker 和 Docker Compose 是否已安装
 2. 复制 `.env.example` 为 `.env`（如不存在）
 3. 拉取最新 Docker 镜像
-4. 启动 Hermes Agent + Open WebUI
+4. 启动 Hermes Agent + Hermes Smart Bridge + Open WebUI
 5. 修复 Hermes 默认模型为 DeepSeek V4 Flash / Pro
 6. 等待健康检查通过并打印访问地址
 
@@ -123,7 +123,7 @@ http://localhost:3000
 
 ### 4.2 登录模式
 
-默认家庭模式（`WEBUI_AUTH=false`）不需要注册，打开即可对话。  
+默认家庭模式（`WEBUI_AUTH=false`）不需要注册，打开即可对话。
 如果你在 `.env` 中设置了 `WEBUI_AUTH=true`，首次访问时需要注册第一个管理员账号。
 
 ```
@@ -136,7 +136,7 @@ http://localhost:3000
 
 1. 登录后点击右上角头像 → **Admin Panel**
 2. 左侧菜单选择 **Settings → Connections**
-3. 在 **OpenAI API** 或 **Direct Connections** 区域，确认连接指向 `http://hermes:8642/v1`
+3. 在 **OpenAI API** 或 **Direct Connections** 区域，确认连接指向 `http://hermes-bridge:8765/v1`
 4. 模型列表中应包含 `hermes-agent`，这是 Open WebUI 调用 Hermes Agent 的入口
 
 如果 Hermes 未显示，请检查：
@@ -210,7 +210,7 @@ services:
   open-webui:
     ports:
       - "127.0.0.1:3002:8080"   # 将主机端口从 3000 改为 3002，避开 onboarding 的 3001
-  
+
   hermes:
     ports:
       - "8643:8642"   # 将主机端口从 8642 改为 8643

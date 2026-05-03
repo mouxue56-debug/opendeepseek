@@ -144,7 +144,7 @@
 ### 上传图片让 AI 看
 - 和传文件一样，把图片拖进对话框
 - 问"这张图里有什么""这张表格数据是多少""帮我描述这张图"
-- 注意：不是所有模型都支持看图，deepseek-v4-flash 一般可以
+- OpenDeepSeek 会先用 Hermes Smart Bridge 把图片保存到 `/host/OpenDeepSeek-Inputs` 并 OCR 成文字，再按任务类型交给 DeepSeek V4 Flash 或 Hermes Agent 处理；这样既能用图片证据，又不会把 `image_url` 直接塞给 DeepSeek 文本端点。
 
 ---
 

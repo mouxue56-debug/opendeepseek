@@ -1,6 +1,6 @@
 # OpenDeepSeek 一键部署完整指南
 
-> 本地运行的 Agentic AI 助手，基于 Open WebUI + Hermes Agent + DeepSeek V4，部署后访问 http://localhost:3000 即可使用。
+> 本地运行的 Agentic AI 助手，基于 Open WebUI + Hermes Smart Bridge + Hermes Agent + DeepSeek V4，部署后访问 http://localhost:3000 即可使用。
 
 ---
 
@@ -14,9 +14,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 
 然后按提示走完 3 步：
 
-1. 等待约 1 分钟（脚本自动拉取镜像并启动容器）
-2. 输入你的 DeepSeek API Key
-3. 浏览器自动打开 http://localhost:3000，直接开始对话
+1. 脚本检查 Docker / Git / curl，缺什么会给出安装命令
+2. 选择安装目录，浏览器打开配置向导
+3. 输入你的 DeepSeek API Key，等待容器启动
+4. 浏览器自动打开 http://localhost:3000，直接开始对话
 
 如果你拿到的是发布 zip 包：解压后在 macOS 上双击 `OpenDeepSeek.command`；其他系统在项目目录执行 `./setup.sh --web`。
 
@@ -43,7 +44,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 ```
 
 - 自动检测操作系统
-- 自动安装依赖并启动服务
+- 自动检测依赖、clone 项目、启动配置向导和服务
 - 默认启用家庭模式（无需注册登录，访问即用）
 
 ### 方式 B：手动 git clone
