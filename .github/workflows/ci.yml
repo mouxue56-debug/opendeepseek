@@ -63,7 +63,9 @@ jobs:
         run: pip install yamllint
 
       - name: Run yamllint
-        run: yamllint -d "{extends: default, rules: {line-length: {max: 200}}}" docker-compose.yml .github/
+        run: >
+          yamllint -d "{extends: default, rules: {line-length: {max: 200}}}"
+          docker-compose.yml .github/
 
   docs-existence-check:
     name: Docs Existence Check
