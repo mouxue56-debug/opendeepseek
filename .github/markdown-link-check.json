@@ -3,13 +3,19 @@
   "retryOn429": true,
   "retryCount": 1,
   "fallbackRetryDelay": "5s",
-  "aliveStatusCodes": [200, 206],
+  "aliveStatusCodes": [200, 202, 206],
   "ignorePatterns": [
     {
       "pattern": "^https://raw.githubusercontent.com"
     },
     {
       "pattern": "^https://github.com/.*/raw/"
+    },
+    {
+      "pattern": "^http://localhost(:[0-9]+)?"
+    },
+    {
+      "pattern": "^http://127\\.0\\.0\\.1(:[0-9]+)?"
     }
   ]
 }
