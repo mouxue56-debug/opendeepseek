@@ -81,6 +81,7 @@ def _write_env(deepseek_api_key: str, model: str):
         "ENABLE_LIGHTWEIGHT_ROUTING": "true",
         "HERMES_AGENT_MAX_TOKENS": "32768",
         "HERMES_AGENT_STREAM": "false",
+        "HERMES_PROGRESS_STREAM": "true",
         "OPDS_SHARED_MEMORY_PATH": "/host/OpenDeepSeek-Memory/profile.md",
         "OPDS_MEMORY_SNAPSHOT_MAX_CHARS": "4000",
         "OPDS_HOST_DISPLAY_PREFIX": existing["HERMES_HOST_DIR"],

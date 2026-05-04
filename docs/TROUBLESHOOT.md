@@ -258,6 +258,7 @@ docker compose logs hermes-bridge --tail 80
 ```env
 HERMES_AGENT_MAX_TOKENS=32768
 HERMES_AGENT_STREAM=false
+HERMES_PROGRESS_STREAM=true
 OPDS_HOST_DISPLAY_PREFIX=/Users/你的用户名
 ```
 
