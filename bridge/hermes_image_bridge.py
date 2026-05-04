@@ -51,6 +51,11 @@ MEMORY_SNAPSHOT_MAX_CHARS = int(os.environ.get("OPDS_MEMORY_SNAPSHOT_MAX_CHARS",
 HOST_DISPLAY_PREFIX = os.environ.get("OPDS_HOST_DISPLAY_PREFIX", "").rstrip("/")
 HERMES_AGENT_MAX_TOKENS = int(os.environ.get("HERMES_AGENT_MAX_TOKENS", "32768"))
 HERMES_AGENT_STREAM = os.environ.get("HERMES_AGENT_STREAM", "false").lower() == "true"
+HERMES_PROGRESS_STREAM = os.environ.get("HERMES_PROGRESS_STREAM", "true").lower() == "true"
+HERMES_PROGRESS_MESSAGE = os.environ.get(
+    "HERMES_PROGRESS_MESSAGE",
+    "收到，这类请求需要 Hermes Agent 的工具/实时信息能力，我先切到 Agent 处理，请稍等…\n\n",
+)
 
 
 AGENT_PATTERNS = [
@@ -68,11 +73,22 @@ AGENT_PATTERNS = [
     r"桌面|文件夹|目录|下载目录|Documents|Downloads|Desktop",
     r"查看.*文件|列出.*文件|整理.*文件|移动.*文件|删除.*文件|重命名",
     r"上传图片|截图|证据图|图片路径|OCR",
+    r"(?:今天|今日|最新|最近|近期|刚刚|实时|当前|现在).*(?:早报|日报|简报|新闻|资讯|动态|热点|信息|调研|整理)",
+    r"(?:早报|日报|简报|新闻|资讯|动态|热点).*(?:今天|今日|最新|最近|近期|当前|现在|AI|大模型)",
+    r"(?:搜索|搜一下|查一下|联网|网上|全网|资料|调研|信息整理|整理.*信息)",
+    r"(?:AI圈|模型圈|大模型圈|科技圈).*(?:早报|日报|简报|新闻|资讯|动态|热点|整理)",
 ]
 
 ARTIFACT_PATTERNS = [
     r"网页|网站|PPT|幻灯片|演示文稿|index\.html|HTML",
     r"生成.*(?:页面|落地页|官网|展示|deck|slides?)",
+]
+
+REALTIME_RESEARCH_PATTERNS = [
+    r"(?:今天|今日|最新|最近|近期|刚刚|实时|当前|现在).*(?:早报|日报|简报|新闻|资讯|动态|热点|信息|调研|整理)",
+    r"(?:早报|日报|简报|新闻|资讯|动态|热点).*(?:今天|今日|最新|最近|近期|当前|现在|AI|大模型)",
+    r"(?:搜索|搜一下|查一下|联网|网上|全网|资料|调研|信息整理|整理.*信息)",
+    r"(?:AI圈|模型圈|大模型圈|科技圈).*(?:早报|日报|简报|新闻|资讯|动态|热点|整理)",
 ]
 
 
@@ -293,6 +309,10 @@ def is_artifact_task(text: str) -> bool:
     return any(re.search(pattern, text, re.IGNORECASE) for pattern in ARTIFACT_PATTERNS)
 
 
+def is_realtime_research_task(text: str) -> bool:
+    return any(re.search(pattern, text, re.IGNORECASE) for pattern in REALTIME_RESEARCH_PATTERNS)
+
+
 def read_shared_memory_snapshot() -> str:
     try:
         if not SHARED_MEMORY_PATH.exists():
@@ -408,6 +428,47 @@ def augment_openai_response(content: bytes, upstream_name: str) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
 
+def extract_openai_message_content(content: bytes, upstream_name: str) -> str:
+    try:
+        payload = json.loads(augment_openai_response(content, upstream_name).decode("utf-8"))
+    except Exception:
+        return content.decode("utf-8", errors="replace")
+    choices = payload.get("choices")
+    if isinstance(choices, list) and choices:
+        choice = choices[0]
+        if isinstance(choice, dict):
+            message = choice.get("message")
+            if isinstance(message, dict):
+                text = message.get("content") or message.get("reasoning_content")
+                if isinstance(text, str):
+                    return text
+    error = payload.get("error")
+    if error:
+        return json.dumps(error, ensure_ascii=False)
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def human_route_reason(reason: str) -> str:
+    if reason == "image":
+        return "图片/OCR 任务"
+    if reason in {"explicit-tools", "forced-agent"}:
+        return "用户明确要求工具/Agent 能力"
+    if reason in {"missing-deepseek-key", "routing-disabled", "no-messages", "non-chat"}:
+        return "需要 Agent 执行路径"
+    pattern = reason.removeprefix("pattern:")
+    if any(word in pattern for word in ("今天", "今日", "最新", "早报", "新闻", "资讯", "搜索", "调研", "AI圈")):
+        return "实时资讯/资料整理任务"
+    if any(word in pattern for word in ("网页", "网站", "PPT", "文件", "写入", "保存")):
+        return "文件/网页产出任务"
+    if any(word in pattern for word in ("提醒", "定时", "闹钟")):
+        return "提醒/定时任务"
+    if any(word in pattern for word in ("记住", "记忆")):
+        return "长期记忆任务"
+    if any(word in pattern for word in ("桌面", "目录", "Downloads", "Desktop")):
+        return "本机文件任务"
+    return "普通聊天做不到的 Agent 任务"
+
+
 def hermes_system_message(payload: dict[str, Any], reason: str) -> dict[str, str]:
     text = recent_user_text(payload.get("messages", []) if isinstance(payload.get("messages"), list) else [])
     parts = [
@@ -422,6 +483,12 @@ def hermes_system_message(payload: dict[str, Any], reason: str) -> dict[str, str
         parts.append(
             "网页/PPT/HTML 等大文件不要一次性塞进超长工具参数；如内容较长，请分段写入或用脚本生成，"
             "避免 tool call 被截断。最后用 ls/wc/test 验证文件。"
+        )
+    if is_realtime_research_task(text):
+        parts.append(
+            "早报、今日资讯、最新动态、调研和搜索类请求不能由普通聊天凭记忆回答；"
+            "请优先使用 Hermes 可用的浏览器/网络检索/资料读取能力。"
+            "如果当前环境没有可用联网工具，必须明确说明需要开启搜索/浏览能力，不要编造今日新闻。"
         )
     parts.append(f"路由原因：{reason}")
     return {"role": "system", "content": "\n".join(parts)}
@@ -475,6 +542,81 @@ class BridgeHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
         log(fmt % args)
 
+    def write_chunk(self, chunk: bytes) -> bool:
+        try:
+            self.wfile.write(f"{len(chunk):X}\r\n".encode("ascii"))
+            self.wfile.write(chunk)
+            self.wfile.write(b"\r\n")
+            self.wfile.flush()
+            return True
+        except BrokenPipeError:
+            return False
+
+    def write_sse_event(self, payload: dict[str, Any] | str) -> bool:
+        if isinstance(payload, str):
+            data = f"data: {payload}\n\n".encode("utf-8")
+        else:
+            data = f"data: {json.dumps(payload, ensure_ascii=False)}\n\n".encode("utf-8")
+        return self.write_chunk(data)
+
+    def sse_chunk(self, stream_id: str, model: str, content: str = "", role: str | None = None, finish_reason: str | None = None) -> dict[str, Any]:
+        delta: dict[str, str] = {}
+        if role:
+            delta["role"] = role
+        if content:
+            delta["content"] = content
+        return {
+            "id": stream_id,
+            "object": "chat.completion.chunk",
+            "created": int(dt.datetime.now(dt.UTC).timestamp()),
+            "model": model,
+            "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
+        }
+
+    def proxy_hermes_with_progress(self, target_url: str, headers: dict[str, str], body_bytes: bytes, model: str, reason: str) -> None:
+        stream_id = f"chatcmpl-opds-{uuid.uuid4().hex}"
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("X-Accel-Buffering", "no")
+        self.send_header("Transfer-Encoding", "chunked")
+        self.end_headers()
+
+        progress_text = HERMES_PROGRESS_MESSAGE
+        progress_text = progress_text.rstrip() + f"\n识别为：{human_route_reason(reason)}\n\n"
+        if not self.write_sse_event(self.sse_chunk(stream_id, model, progress_text, role="assistant")):
+            log("client disconnected before Hermes progress stream started")
+            return
+
+        try:
+            response = requests.request(
+                self.command,
+                target_url,
+                headers=headers,
+                data=body_bytes if body_bytes else None,
+                stream=False,
+                timeout=REQUEST_TIMEOUT,
+            )
+            if response.status_code >= 400:
+                final_text = f"Hermes Agent 调用失败（HTTP {response.status_code}）：{response.text[:1200]}"
+            else:
+                final_text = extract_openai_message_content(response.content, "hermes")
+        except Exception as exc:  # noqa: BLE001
+            final_text = f"Hermes Agent 调用失败：{exc}"
+
+        if final_text:
+            if not self.write_sse_event(self.sse_chunk(stream_id, model, final_text)):
+                log("client disconnected while writing Hermes final stream")
+                return
+        self.write_sse_event(self.sse_chunk(stream_id, model, finish_reason="stop"))
+        self.write_sse_event("[DONE]")
+        try:
+            self.wfile.write(b"0\r\n\r\n")
+            self.wfile.flush()
+        except BrokenPipeError:
+            log("client disconnected at end of Hermes progress stream")
+
     def proxy(self) -> None:
         if self.path == "/health":
             body = b"ok"
@@ -499,6 +641,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
         body_bytes = b""
         stream_response = False
+        progress_stream = False
+        route_reason = "non-chat"
+        requested_model = "hermes-agent"
         upstream_name = "hermes"
         if self.command in {"POST", "PUT", "PATCH"}:
             length = int(self.headers.get("Content-Length", "0") or "0")
@@ -507,15 +652,24 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 try:
                     payload = json.loads(body_bytes.decode("utf-8"))
                     payload, image_count = sanitize_payload(payload)
-                    stream_response = bool(payload.get("stream"))
+                    client_requested_stream = bool(payload.get("stream"))
+                    stream_response = client_requested_stream
+                    requested_model = str(payload.get("model") or "hermes-agent")
                     if image_count:
                         log(f"sanitized {image_count} image(s) for {self.path}")
                     route_hermes = True
                     reason = "non-chat"
                     if self.path.rstrip("/") == "/v1/chat/completions" and isinstance(payload, dict):
                         route_hermes, reason = should_route_to_hermes(payload, image_count)
+                    route_reason = reason
                     if route_hermes:
                         body_bytes, stream_response = prepare_hermes_payload(payload, reason)
+                        progress_stream = (
+                            self.path.rstrip("/") == "/v1/chat/completions"
+                            and client_requested_stream
+                            and HERMES_PROGRESS_STREAM
+                            and not stream_response
+                        )
                         upstream_name = "hermes"
                     else:
                         target_base_url = DEEPSEEK_BASE_URL
@@ -523,11 +677,16 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         if DEEPSEEK_API_KEY:
                             headers["Authorization"] = f"Bearer {DEEPSEEK_API_KEY}"
                         body_bytes = prepare_deepseek_payload(payload)
+                        stream_response = client_requested_stream
                         upstream_name = "deepseek-lite"
-                    log(f"route {self.path} -> {upstream_name} ({reason}) stream={stream_response}")
+                    log(f"route {self.path} -> {upstream_name} ({reason}) stream={stream_response} progress={progress_stream}")
                     headers["Content-Type"] = "application/json"
                 except Exception as exc:  # noqa: BLE001
                     log(f"payload sanitize failed, forwarding original body: {exc}")
+
+        if progress_stream:
+            self.proxy_hermes_with_progress(target_url, headers, body_bytes, requested_model, route_reason)
+            return
 
         try:
             response = requests.request(

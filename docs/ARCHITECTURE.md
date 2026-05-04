@@ -116,14 +116,15 @@ docker compose --profile full up -d
 |---|---|---|
 | 1 | 浏览器向 Open WebUI `:3000` 发送消息 | 用户只面对 Web/PWA/桌面体验层 |
 | 2 | Open WebUI 调用 `http://hermes-bridge:8765/v1/chat/completions` | 模型 id 是 `hermes-agent` |
-| 3 | Smart Bridge 检测到提醒/文件/记忆/图片/工具关键词 | 路由进入 Hermes |
+| 3 | Smart Bridge 检测到提醒/文件/记忆/图片/工具关键词，或“今天/最新/早报/新闻/搜索/调研”等实时资讯意图 | 路由进入 Hermes |
 | 4 | 如有图片，Smart Bridge 本地落盘 + OCR | `image_url` 会变成 `/host/OpenDeepSeek-Inputs/...` 路径 + OCR 摘要 |
 | 5 | Hermes 解析请求、加载 SOUL.md、判断是否需要工具 | Cron/Memory/Skill 在这里生效 |
 | 6 | Hermes 用原生 `deepseek` provider 调 DeepSeek V4 | 使用 `.env` 中的 `DEEPSEEK_API_KEY` |
-| 7 | Smart Bridge 为 Hermes 任务提高输出预算，并默认关闭 Agent 流式回传 | 避免长网页/PPT任务出现半截 tool call 或空回复 |
-| 8 | 如需提醒，Hermes 创建 Cron 任务并持久化 | 不是模型口头承诺 |
-| 9 | Hermes 返回结果，Open WebUI 渲染并保存对话 | 用户仍在熟悉的聊天界面里 |
-| 10 | 若回复包含 `/host/...`，Smart Bridge 追加本机可找路径和 `file://` 地址 | 小白不需要理解 Docker 路径映射 |
+| 7 | 如果 OpenWebUI 请求流式响应，Smart Bridge 会先发一条“已切到 Hermes Agent，请稍等”进度消息 | 用户不会误以为页面卡死 |
+| 8 | Smart Bridge 为 Hermes 任务提高输出预算，并默认关闭 Hermes 上游工具流式回传 | 避免长网页/PPT任务出现半截 tool call 或空回复 |
+| 9 | 如需提醒，Hermes 创建 Cron 任务并持久化 | 不是模型口头承诺 |
+| 10 | Hermes 返回结果，Open WebUI 渲染并保存对话 | 用户仍在熟悉的聊天界面里 |
+| 11 | 若回复包含 `/host/...`，Smart Bridge 追加本机可找路径和 `file://` 地址 | 小白不需要理解 Docker 路径映射 |
 
 这两条路径都是 smoke test 必须验证的核心路径。只检查网页能打开不够，必须确认轻量问答能直连、真任务能进 Hermes 并实际产生工具结果。
 
@@ -256,11 +257,13 @@ BIND_HOST=127.0.0.1
 ENABLE_LIGHTWEIGHT_ROUTING=true
 HERMES_AGENT_MAX_TOKENS=32768
 HERMES_AGENT_STREAM=false
+HERMES_PROGRESS_STREAM=true
 OPDS_HOST_DISPLAY_PREFIX=/Users/yourname
 ```
 
 - `HERMES_AGENT_MAX_TOKENS` 只作用于真 Agent 任务，普通问答仍走轻量路径。
 - `HERMES_AGENT_STREAM=false` 是发布前的保守默认：先让 Hermes 工具链完整执行并验证产物，再把结果交回 OpenWebUI。后续如果做了可靠的 Agent 进度事件，再考虑开启流式 Agent 状态。
+- `HERMES_PROGRESS_STREAM=true` 让 OpenWebUI 在等待 Hermes 完整执行时先收到一条中文进度提示；Hermes 上游仍按非流式完成工具链。
 - `OPDS_HOST_DISPLAY_PREFIX` 用来把容器路径 `/host/...` 转成用户电脑上的真实路径。
 
 模型切换：
