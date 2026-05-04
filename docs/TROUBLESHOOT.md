@@ -256,7 +256,7 @@ docker compose logs hermes-bridge --tail 80
 确认 `.env` 里有这些默认值：
 
 ```env
-HERMES_AGENT_MAX_TOKENS=12000
+HERMES_AGENT_MAX_TOKENS=32768
 HERMES_AGENT_STREAM=false
 HERMES_PROGRESS_STREAM=true
 HERMES_MAX_ITERATIONS=24
@@ -279,11 +279,11 @@ OpenDeepSeek 正常待机不应拖卡电脑。优先看容器资源：
 docker stats --no-stream
 ```
 
-如果 Hermes 日志里出现 `Unknown tool 'web_search'`、`Response truncated`、`Iteration budget exhausted`，说明模型被带进了工具重试循环。新版默认用这些参数收住：
+如果 Hermes 日志里出现 `Unknown tool 'web_search'`、`Response truncated`、`Iteration budget exhausted`，说明模型被带进了工具重试循环。新版默认用这些参数收住；不要降低 `HERMES_AGENT_MAX_TOKENS`，否则网页/PPT/长报告容易被截断：
 
 ```env
 HERMES_MAX_ITERATIONS=24
-HERMES_AGENT_MAX_TOKENS=12000
+HERMES_AGENT_MAX_TOKENS=32768
 IMAGE_BRIDGE_TIMEOUT=600
 HERMES_CPUS=1.5
 HERMES_MEMORY_LIMIT=1536m

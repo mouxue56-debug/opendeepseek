@@ -50,7 +50,7 @@ REQUEST_TIMEOUT = int(os.environ.get("IMAGE_BRIDGE_TIMEOUT", "600"))
 SHARED_MEMORY_PATH = Path(os.environ.get("OPDS_SHARED_MEMORY_PATH", str(HOST_ROOT / "OpenDeepSeek-Memory" / "profile.md")))
 MEMORY_SNAPSHOT_MAX_CHARS = int(os.environ.get("OPDS_MEMORY_SNAPSHOT_MAX_CHARS", "4000"))
 HOST_DISPLAY_PREFIX = os.environ.get("OPDS_HOST_DISPLAY_PREFIX", "").rstrip("/")
-HERMES_AGENT_MAX_TOKENS = int(os.environ.get("HERMES_AGENT_MAX_TOKENS", "12000"))
+HERMES_AGENT_MAX_TOKENS = int(os.environ.get("HERMES_AGENT_MAX_TOKENS", "32768"))
 HERMES_AGENT_STREAM = os.environ.get("HERMES_AGENT_STREAM", "false").lower() == "true"
 HERMES_PROGRESS_STREAM = os.environ.get("HERMES_PROGRESS_STREAM", "true").lower() == "true"
 HERMES_PROGRESS_MESSAGE = os.environ.get(
