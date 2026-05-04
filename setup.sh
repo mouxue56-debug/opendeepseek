@@ -12,6 +12,14 @@ elif [[ "${1:-}" == "--web" || "${1:-}" == "-w" ]]; then
     SETUP_MODE="web"
 fi
 
+if [[ "${1:-}" == "verify" || "${1:-}" == "--verify" ]]; then
+    if ! command -v python3 &>/dev/null; then
+        echo "❌ verify 需要 python3"
+        exit 1
+    fi
+    exec python3 scripts/verify_config.py
+fi
+
 # Web 模式：启动浏览器 onboarding wizard
 if [[ "$SETUP_MODE" == "web" ]]; then
     if ! command -v python3 &>/dev/null; then
@@ -276,6 +284,7 @@ OPDS_REALTIME_SEARCH_ENABLED=true
 OPDS_REALTIME_SEARCH_URL=http://searxng:8080/search?q={query}&format=json
 OPDS_REALTIME_SEARCH_TIMEOUT=4
 OPDS_REALTIME_SEARCH_MAX_RESULTS=6
+OPDS_DELEGATE_OPENWEBUI_NATIVE_TOOLS=true
 ENABLE_RAG_WEB_SEARCH=${ENABLE_CHINA_MODE}
 HERMES_CPUS=1.5
 HERMES_MEMORY_LIMIT=1536m

@@ -28,6 +28,14 @@ echo "   OpenDeepSeek Smoke Test (v0.4.2 - Smart Bridge 架构)"
 echo "════════════════════════════════════════════"
 echo ""
 
+info "[0/10] 离线路由回归（不消耗 API）"
+if python3 scripts/benchmark_routing.py > /tmp/opds-routing-benchmark.txt 2>&1; then
+    ok "离线路由回归通过"
+else
+    fail "离线路由回归失败"
+    cat /tmp/opds-routing-benchmark.txt
+fi
+
 # 1. .env 存在
 info "[1/10] 检查 .env 文件"
 if [[ -f .env ]] && grep -v '^\s*#' .env | grep -qE "^DEEPSEEK_API_KEY[[:space:]]*=" && ! grep -q "DEEPSEEK_API_KEY=your-deepseek-api-key-here" .env; then
@@ -35,6 +43,12 @@ if [[ -f .env ]] && grep -v '^\s*#' .env | grep -qE "^DEEPSEEK_API_KEY[[:space:]
 else
     fail ".env 缺失或未配置 DEEPSEEK_API_KEY"
     exit 1
+fi
+
+if grep -qE "^HERMES_AGENT_MAX_TOKENS=([3-9][2-9][0-9]{3}|[1-9][0-9]{5,})" .env; then
+    ok "Hermes Artifact 输出预算保持高位"
+else
+    fail "HERMES_AGENT_MAX_TOKENS 过低，网页/PPT/长文件任务可能截断"
 fi
 
 # 2. 三个容器状态（hermes + hermes-bridge + open-webui）

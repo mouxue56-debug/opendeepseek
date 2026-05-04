@@ -117,6 +117,9 @@ services:
       - OPDS_REALTIME_SEARCH_URL=${OPDS_REALTIME_SEARCH_URL:-http://searxng:8080/search?q={query}&format=json}
       - OPDS_REALTIME_SEARCH_TIMEOUT=${OPDS_REALTIME_SEARCH_TIMEOUT:-4}
       - OPDS_REALTIME_SEARCH_MAX_RESULTS=${OPDS_REALTIME_SEARCH_MAX_RESULTS:-6}
+      # OpenWebUI 自带 Memory/Knowledge/Tools/Automations 时，保守交回 OpenWebUI 原生工具循环；
+      # 只有 /host、文件、提醒、图片、Hermes 等真任务才强制进 Hermes。
+      - OPDS_DELEGATE_OPENWEBUI_NATIVE_TOOLS=${OPDS_DELEGATE_OPENWEBUI_NATIVE_TOOLS:-true}
       - OPDS_SHARED_MEMORY_PATH=${OPDS_SHARED_MEMORY_PATH:-/host/OpenDeepSeek-Memory/profile.md}
       - OPDS_MEMORY_SNAPSHOT_MAX_CHARS=${OPDS_MEMORY_SNAPSHOT_MAX_CHARS:-4000}
       - OPDS_HOST_DISPLAY_PREFIX=${HERMES_HOST_DIR:-/host}

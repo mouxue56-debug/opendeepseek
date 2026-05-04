@@ -114,6 +114,16 @@ cd opendeepseek
 
 macOS 用户也可以直接双击 `OpenDeepSeek.command`，它会自动打开浏览器配置向导。
 
+### 发布前 / 出错时自检
+
+```bash
+./setup.sh verify
+python3 scripts/benchmark_routing.py
+bash scripts/smoke-test.sh
+```
+
+`verify` 只读检查 `.env`、Docker Compose、端口、`/host` 映射和高输出预算；`benchmark_routing.py` 离线验证普通问答不会误进 Hermes、真任务不会误走普通聊天。
+
 ### 高级版（懂技术的用户）
 
 ```bash
