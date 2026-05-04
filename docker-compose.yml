@@ -29,6 +29,10 @@ services:
       - "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
       - HERMES_INFERENCE_PROVIDER=deepseek
       - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek-v4-flash}
+      # 防止 Agent 被模型带入长循环：API Server 默认 90 轮太重，小白本机默认收敛到 24 轮。
+      - HERMES_MAX_ITERATIONS=${HERMES_MAX_ITERATIONS:-24}
+      - HERMES_API_TIMEOUT=${HERMES_API_TIMEOUT:-300}
+      - HERMES_API_CALL_STALE_TIMEOUT=${HERMES_API_CALL_STALE_TIMEOUT:-120}
       # API Server（暴露给 Open WebUI 当 model backend）
       - API_SERVER_ENABLED=true
       - "API_SERVER_KEY=${HERMES_API_KEY:?Missing required: HERMES_API_KEY (run ./setup.sh)}"
@@ -82,6 +86,9 @@ services:
       retries: 3
       start_period: 60s
     restart: unless-stopped
+    cpus: "${HERMES_CPUS:-1.5}"
+    mem_limit: "${HERMES_MEMORY_LIMIT:-1536m}"
+    pids_limit: 128
     networks:
       - opendeepseek-network
 
@@ -102,9 +109,14 @@ services:
       - "DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:?Missing required: DEEPSEEK_API_KEY (run ./setup.sh)}"
       - DEFAULT_MODEL=${DEFAULT_MODEL:-deepseek-v4-flash}
       - ENABLE_LIGHTWEIGHT_ROUTING=${ENABLE_LIGHTWEIGHT_ROUTING:-true}
-      - HERMES_AGENT_MAX_TOKENS=${HERMES_AGENT_MAX_TOKENS:-32768}
+      - HERMES_AGENT_MAX_TOKENS=${HERMES_AGENT_MAX_TOKENS:-12000}
       - HERMES_AGENT_STREAM=${HERMES_AGENT_STREAM:-false}
       - HERMES_PROGRESS_STREAM=${HERMES_PROGRESS_STREAM:-true}
+      - IMAGE_BRIDGE_TIMEOUT=${IMAGE_BRIDGE_TIMEOUT:-600}
+      - OPDS_REALTIME_SEARCH_ENABLED=${OPDS_REALTIME_SEARCH_ENABLED:-true}
+      - OPDS_REALTIME_SEARCH_URL=${OPDS_REALTIME_SEARCH_URL:-http://searxng:8080/search?q={query}&format=json}
+      - OPDS_REALTIME_SEARCH_TIMEOUT=${OPDS_REALTIME_SEARCH_TIMEOUT:-4}
+      - OPDS_REALTIME_SEARCH_MAX_RESULTS=${OPDS_REALTIME_SEARCH_MAX_RESULTS:-6}
       - OPDS_SHARED_MEMORY_PATH=${OPDS_SHARED_MEMORY_PATH:-/host/OpenDeepSeek-Memory/profile.md}
       - OPDS_MEMORY_SNAPSHOT_MAX_CHARS=${OPDS_MEMORY_SNAPSHOT_MAX_CHARS:-4000}
       - OPDS_HOST_DISPLAY_PREFIX=${HERMES_HOST_DIR:-/host}
@@ -123,6 +135,9 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+    cpus: "${BRIDGE_CPUS:-0.5}"
+    mem_limit: "${BRIDGE_MEMORY_LIMIT:-256m}"
+    pids_limit: 64
     networks:
       - opendeepseek-network
 
@@ -162,7 +177,7 @@ services:
       # 中文默认建议卡片：避免 Open WebUI 首屏残留英文模板
       - 'DEFAULT_PROMPT_SUGGESTIONS=[{"title":["整理我的桌面","真 Agent 文件系统演示"],"content":"请查看 /host/Desktop，但不要移动或删除任何文件。先按类型总结我的桌面有什么，再给我一个整理方案，并把方案写到 /host/OpenDeepSeek-Outputs/desktop-cleanup-plan.md"},{"title":["生成一个网页","一分钟做出可打开作品"],"content":"请在 /host/OpenDeepSeek-Outputs/site 里生成一个单文件中文个人主页 index.html，主题是「我用 DeepSeek V4 + Hermes 做个人 AI 助理」。要求手机端好看，可直接打开。"},{"title":["做一份视频文案","把乱语音变成爆款逻辑"],"content":"我会粘贴一段语音转录。请把它整理成 3 分钟中文视频脚本：开头钩子、痛点、解决方案、演示镜头、结尾号召，并保存到 /host/OpenDeepSeek-Outputs/video-script.md\n\n语音转录："},{"title":["创建真实提醒","Hermes Cron 不是口头答应"],"content":"请创建一个 10 分钟后的提醒：回来检查 OpenDeepSeek 手机上是否好用。请实际使用 cron 工具创建，并告诉我任务 ID。"},{"title":["生成周报草稿","从电脑文件名推工作线索"],"content":"请读取 /host/Desktop 或 /host/Documents 里和本周工作有关的文件名，不读取正文，帮我生成一份周报草稿到 /host/OpenDeepSeek-Outputs/weekly-report.md"},{"title":["记住我的偏好","长期记忆演示"],"content":"请记住：我偏好中文、直接、少废话、要真执行不要只解释。以后相关对话请主动参考这个偏好。"}]'
       # 联网搜索（配合 SearXNG profile 使用）
-      - ENABLE_RAG_WEB_SEARCH=true
+      - ENABLE_RAG_WEB_SEARCH=${ENABLE_RAG_WEB_SEARCH:-false}
       - SEARXNG_QUERY_URL=http://searxng:8080/search?q=<query>&format=json
     volumes:
       - open-webui-data:/app/backend/data
@@ -176,6 +191,9 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    cpus: "${WEBUI_CPUS:-1.0}"
+    mem_limit: "${WEBUI_MEMORY_LIMIT:-1280m}"
+    pids_limit: 160
     networks:
       - opendeepseek-network
 
@@ -189,9 +207,15 @@ services:
       - "full"
     ports:
       - "${BIND_HOST:-127.0.0.1}:8889:8080"
+    environment:
+      - SEARXNG_PORT=8080
+      - SEARXNG_BIND_ADDRESS=0.0.0.0
     volumes:
       - ./searxng:/etc/searxng:rw
     restart: unless-stopped
+    cpus: "${SEARXNG_CPUS:-0.5}"
+    mem_limit: "${SEARXNG_MEMORY_LIMIT:-512m}"
+    pids_limit: 96
     networks:
       - opendeepseek-network
 

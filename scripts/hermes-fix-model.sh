@@ -1,6 +1,6 @@
 #!/bin/bash
 # scripts/hermes-fix-model.sh
-# 修复 Hermes config.yaml 默认 model：anthropic/claude-opus-4.6 → deepseek-v4-flash
+# 修复 Hermes config.yaml 默认 model，并应用 OpenDeepSeek 的本机友好运行参数。
 #
 # 背景：Hermes 镜像 v2026.4.23 默认 config.yaml 写死 anthropic/claude-opus-4.6，
 #       但 DeepSeek API 只支持 deepseek-v4-pro / deepseek-v4-flash。
@@ -19,7 +19,7 @@ if [ -z "$TARGET_MODEL" ] && [ -f .env ]; then
 fi
 TARGET_MODEL="${TARGET_MODEL:-deepseek-v4-flash}"
 
-echo "🔧 修复 Hermes config.yaml 默认 model → ${TARGET_MODEL}"
+echo "🔧 修复 Hermes config.yaml 默认 model + 本机运行上限 → ${TARGET_MODEL}"
 
 # 检查 hermes 容器是否运行
 if ! docker compose ps --status running --format json 2>/dev/null | grep -q opendeepseek-hermes; then
@@ -42,23 +42,39 @@ if not os.path.exists(config_path):
 with open(config_path, "r", encoding="utf-8") as f:
     content = f.read()
 
-# 替换 default model（精确匹配 anthropic/claude-opus-4.6 → 目标）
+# 替换 default model（兼容镜像默认 Claude，也兼容旧 DeepSeek alias）
 new_content = re.sub(
-    r'default:\s*"anthropic/claude-opus-4\.6"',
-    f'default: "{target_model}"',
+    r'(?m)^(\\s*default:\\s*)"[^"]+"',
+    rf'\\1"{target_model}"',
     content,
+    count=1,
 )
 
-if new_content == content:
-    if f'default: "{target_model}"' in content:
-        print(f"✅ config.yaml 已是目标 model: {target_model}（无需修改）")
-    else:
-        print("⚠️  config.yaml 默认 model 不是预期值，请手动检查")
-    exit(0)
+# 小白本机默认：避免一次任务无限重试/超长输出拖卡电脑。
+tuning = {
+    r'(?m)^(\\s*)max_turns:\\s*\\d+': r'\\g<1>max_turns: 24',
+    r'(?m)^(\\s*)reasoning_effort:\\s*"[^"]*"': r'\\g<1>reasoning_effort: "low"',
+    r'(?m)^(\\s*)timeout:\\s*\\d+(\\s*# Max seconds per script.*)$': r'\\g<1>timeout: 180\\g<2>',
+    r'(?m)^(\\s*)max_tool_calls:\\s*\\d+(\\s*# Max RPC tool calls.*)$': r'\\g<1>max_tool_calls: 24\\g<2>',
+    r'(?m)^(\\s*)max_iterations:\\s*\\d+(\\s*# Max tool-calling turns per child.*)$': r'\\g<1>max_iterations: 12\\g<2>',
+    r'(?m)^(\\s*)tool_progress:\\s*\\w+': r'\\g<1>tool_progress: new',
+    r'(?m)^(\\s*)interim_assistant_messages:\\s*(true|false)': r'\\g<1>interim_assistant_messages: false',
+}
+for pattern, replacement in tuning.items():
+    new_content = re.sub(pattern, replacement, new_content, count=1)
+
+def ensure_agent_key(text: str, key: str, value: str) -> str:
+    if re.search(rf'(?m)^\\s*{re.escape(key)}:\\s*', text):
+        return text
+    return re.sub(r'(?m)^(agent:\\s*)$', rf'\\1\\n  {key}: {value}', text, count=1)
+
+new_content = ensure_agent_key(new_content, "gateway_timeout", "600")
+new_content = ensure_agent_key(new_content, "gateway_timeout_warning", "180")
+new_content = ensure_agent_key(new_content, "api_max_retries", "1")
 
 with open(config_path, "w", encoding="utf-8") as f:
     f.write(new_content)
-print(f"✅ config.yaml default model: anthropic/claude-opus-4.6 → {target_model}")
+print(f"✅ config.yaml default model + OpenDeepSeek runtime caps 已应用：{target_model}")
 PYEOF
 
 # 重启 hermes 让新 config 生效
@@ -76,4 +92,4 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-echo "✅ Hermes 已切到 ${TARGET_MODEL}"
+echo "✅ Hermes 已切到 ${TARGET_MODEL}，并限制 Agent 迭代/超时以避免拖卡电脑"

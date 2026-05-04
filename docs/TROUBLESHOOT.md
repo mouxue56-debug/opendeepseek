@@ -256,9 +256,12 @@ docker compose logs hermes-bridge --tail 80
 确认 `.env` 里有这些默认值：
 
 ```env
-HERMES_AGENT_MAX_TOKENS=32768
+HERMES_AGENT_MAX_TOKENS=12000
 HERMES_AGENT_STREAM=false
 HERMES_PROGRESS_STREAM=true
+HERMES_MAX_ITERATIONS=24
+IMAGE_BRIDGE_TIMEOUT=600
+OPDS_REALTIME_SEARCH_ENABLED=true
 OPDS_HOST_DISPLAY_PREFIX=/Users/你的用户名
 ```
 
@@ -268,7 +271,34 @@ OPDS_HOST_DISPLAY_PREFIX=/Users/你的用户名
 docker compose up -d --build hermes-bridge
 ```
 
-新版会做三件事：提高 Hermes 任务输出上限、让长 Agent 任务先完整执行再回传、要求 Hermes 在说“已保存”前验证文件存在且大小大于 0。特别复杂的网页/PPT，建议让它先生成大纲，再说“按这个大纲生成 HTML/PPT 文件”，成功率更高。
+## 电脑明显变卡
+
+OpenDeepSeek 正常待机不应拖卡电脑。优先看容器资源：
+
+```bash
+docker stats --no-stream
+```
+
+如果 Hermes 日志里出现 `Unknown tool 'web_search'`、`Response truncated`、`Iteration budget exhausted`，说明模型被带进了工具重试循环。新版默认用这些参数收住：
+
+```env
+HERMES_MAX_ITERATIONS=24
+HERMES_AGENT_MAX_TOKENS=12000
+IMAGE_BRIDGE_TIMEOUT=600
+HERMES_CPUS=1.5
+HERMES_MEMORY_LIMIT=1536m
+WEBUI_CPUS=1.0
+WEBUI_MEMORY_LIMIT=1280m
+```
+
+应用后重启：
+
+```bash
+./scripts/hermes-fix-model.sh
+docker compose up -d --build
+```
+
+新版会做三件事：给 Hermes 任务设置合理输出/迭代上限、让长 Agent 任务先完整执行再回传、要求 Hermes 在说“已保存”前验证文件存在且大小大于 0。特别复杂的网页/PPT，建议让它先生成大纲，再说“按这个大纲生成 HTML/PPT 文件”，成功率更高。
 
 ### ❌ 症状：上传 PDF 后 AI 说"我看不到内容"
 

@@ -27,6 +27,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin, urlparse
+from urllib.parse import quote_plus
 
 import requests
 from PIL import Image
@@ -45,17 +46,21 @@ UPLOAD_ROOT = HOST_ROOT / "OpenDeepSeek-Inputs"
 LISTEN_HOST = os.environ.get("IMAGE_BRIDGE_HOST", "0.0.0.0")
 LISTEN_PORT = int(os.environ.get("IMAGE_BRIDGE_PORT", "8765"))
 OCR_LANG = os.environ.get("IMAGE_BRIDGE_OCR_LANG", "chi_sim+eng")
-REQUEST_TIMEOUT = int(os.environ.get("IMAGE_BRIDGE_TIMEOUT", "1800"))
+REQUEST_TIMEOUT = int(os.environ.get("IMAGE_BRIDGE_TIMEOUT", "600"))
 SHARED_MEMORY_PATH = Path(os.environ.get("OPDS_SHARED_MEMORY_PATH", str(HOST_ROOT / "OpenDeepSeek-Memory" / "profile.md")))
 MEMORY_SNAPSHOT_MAX_CHARS = int(os.environ.get("OPDS_MEMORY_SNAPSHOT_MAX_CHARS", "4000"))
 HOST_DISPLAY_PREFIX = os.environ.get("OPDS_HOST_DISPLAY_PREFIX", "").rstrip("/")
-HERMES_AGENT_MAX_TOKENS = int(os.environ.get("HERMES_AGENT_MAX_TOKENS", "32768"))
+HERMES_AGENT_MAX_TOKENS = int(os.environ.get("HERMES_AGENT_MAX_TOKENS", "12000"))
 HERMES_AGENT_STREAM = os.environ.get("HERMES_AGENT_STREAM", "false").lower() == "true"
 HERMES_PROGRESS_STREAM = os.environ.get("HERMES_PROGRESS_STREAM", "true").lower() == "true"
 HERMES_PROGRESS_MESSAGE = os.environ.get(
     "HERMES_PROGRESS_MESSAGE",
     "收到，这类请求需要 Hermes Agent 的工具/实时信息能力，我先切到 Agent 处理，请稍等…\n\n",
 )
+REALTIME_SEARCH_ENABLED = os.environ.get("OPDS_REALTIME_SEARCH_ENABLED", "true").lower() == "true"
+REALTIME_SEARCH_URL = os.environ.get("OPDS_REALTIME_SEARCH_URL", "http://searxng:8080/search?q={query}&format=json")
+REALTIME_SEARCH_TIMEOUT = float(os.environ.get("OPDS_REALTIME_SEARCH_TIMEOUT", "4"))
+REALTIME_SEARCH_MAX_RESULTS = int(os.environ.get("OPDS_REALTIME_SEARCH_MAX_RESULTS", "6"))
 
 
 AGENT_PATTERNS = [
@@ -313,6 +318,60 @@ def is_realtime_research_task(text: str) -> bool:
     return any(re.search(pattern, text, re.IGNORECASE) for pattern in REALTIME_RESEARCH_PATTERNS)
 
 
+def should_skip_realtime_search(text: str) -> bool:
+    return bool(re.search(r"测试路由|不用展开新闻|ROUTED_OK|只测试|无需搜索", text, re.IGNORECASE))
+
+
+def realtime_search_snapshot(query: str) -> str:
+    """Fetch a small SearXNG snapshot before Hermes sees the task.
+
+    Hermes' bundled web_search tool is only present when a web backend such as
+    Firecrawl/Exa/Tavily is configured. OpenDeepSeek ships SearXNG instead, so
+    the bridge injects a compact search snapshot for realtime/news tasks and
+    prevents the model from burning iterations on an unavailable web_search tool.
+    """
+    if not REALTIME_SEARCH_ENABLED:
+        return "OpenDeepSeek 搜索快照：未启用 OPDS_REALTIME_SEARCH_ENABLED。"
+    if should_skip_realtime_search(query):
+        return "OpenDeepSeek 搜索快照：本轮是路由/性能测试，已跳过联网搜索。"
+
+    encoded = quote_plus(query[:300])
+    if "{query}" in REALTIME_SEARCH_URL:
+        url = REALTIME_SEARCH_URL.replace("{query}", encoded)
+    elif "<query>" in REALTIME_SEARCH_URL:
+        url = REALTIME_SEARCH_URL.replace("<query>", encoded)
+    else:
+        joiner = "&" if "?" in REALTIME_SEARCH_URL else "?"
+        url = f"{REALTIME_SEARCH_URL}{joiner}q={encoded}&format=json"
+
+    try:
+        response = requests.get(url, timeout=REALTIME_SEARCH_TIMEOUT)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as exc:  # noqa: BLE001 - keep agent from retry loops.
+        return (
+            "OpenDeepSeek 搜索快照：本地搜索服务暂不可用。"
+            f"错误：{type(exc).__name__}: {exc}。"
+            "不要调用 web_search；如果必须要今日新闻，请提示用户用 `docker compose --profile full up -d` 启动 SearXNG。"
+        )
+
+    results = data.get("results") if isinstance(data, dict) else None
+    if not isinstance(results, list) or not results:
+        return "OpenDeepSeek 搜索快照：本地搜索服务返回空结果；不要编造今日新闻。"
+
+    lines = ["OpenDeepSeek 已先用本地 SearXNG 做了搜索快照，请优先基于这些结果整理，不要再调用 web_search："]
+    for index, item in enumerate(results[:REALTIME_SEARCH_MAX_RESULTS], 1):
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or "无标题").strip()
+        url_value = str(item.get("url") or "").strip()
+        snippet = str(item.get("content") or item.get("snippet") or "").strip()
+        if len(snippet) > 500:
+            snippet = snippet[:500].rstrip() + "..."
+        lines.append(f"{index}. {title}\n   URL: {url_value}\n   摘要: {snippet}")
+    return "\n".join(lines)
+
+
 def read_shared_memory_snapshot() -> str:
     try:
         if not SHARED_MEMORY_PATH.exists():
@@ -487,9 +546,10 @@ def hermes_system_message(payload: dict[str, Any], reason: str) -> dict[str, str
     if is_realtime_research_task(text):
         parts.append(
             "早报、今日资讯、最新动态、调研和搜索类请求不能由普通聊天凭记忆回答；"
-            "请优先使用 Hermes 可用的浏览器/网络检索/资料读取能力。"
-            "如果当前环境没有可用联网工具，必须明确说明需要开启搜索/浏览能力，不要编造今日新闻。"
+            "不要调用不可见或不可用的 web_search 工具，不要在工具不可用时反复自我纠错。"
+            "如果下面有 OpenDeepSeek 搜索快照，请直接基于快照整理；如果快照不可用，必须明确说明需要开启本地搜索，不要编造今日新闻。"
         )
+        parts.append(realtime_search_snapshot(text))
     parts.append(f"路由原因：{reason}")
     return {"role": "system", "content": "\n".join(parts)}
 

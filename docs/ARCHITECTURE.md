@@ -255,15 +255,21 @@ BIND_HOST=127.0.0.1
 
 ```env
 ENABLE_LIGHTWEIGHT_ROUTING=true
-HERMES_AGENT_MAX_TOKENS=32768
+HERMES_AGENT_MAX_TOKENS=12000
 HERMES_AGENT_STREAM=false
 HERMES_PROGRESS_STREAM=true
+HERMES_MAX_ITERATIONS=24
+IMAGE_BRIDGE_TIMEOUT=600
+OPDS_REALTIME_SEARCH_ENABLED=true
+OPDS_REALTIME_SEARCH_URL=http://searxng:8080/search?q={query}&format=json
 OPDS_HOST_DISPLAY_PREFIX=/Users/yourname
 ```
 
 - `HERMES_AGENT_MAX_TOKENS` 只作用于真 Agent 任务，普通问答仍走轻量路径。
+- `HERMES_MAX_ITERATIONS=24` 防止 Agent 被不可用工具或长任务带入几十轮循环，避免本机卡顿。
 - `HERMES_AGENT_STREAM=false` 是发布前的保守默认：先让 Hermes 工具链完整执行并验证产物，再把结果交回 OpenWebUI。后续如果做了可靠的 Agent 进度事件，再考虑开启流式 Agent 状态。
 - `HERMES_PROGRESS_STREAM=true` 让 OpenWebUI 在等待 Hermes 完整执行时先收到一条中文进度提示；Hermes 上游仍按非流式完成工具链。
+- `OPDS_REALTIME_SEARCH_ENABLED=true` 让 Bridge 对早报/最新资讯类任务先取 SearXNG 搜索快照，避免 Hermes 误调用未配置的 `web_search` 工具。
 - `OPDS_HOST_DISPLAY_PREFIX` 用来把容器路径 `/host/...` 转成用户电脑上的真实路径。
 
 模型切换：
