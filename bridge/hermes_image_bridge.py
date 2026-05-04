@@ -22,6 +22,7 @@ import mimetypes
 import os
 import re
 import sys
+import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -30,8 +31,13 @@ from urllib.parse import urljoin, urlparse
 from urllib.parse import quote_plus
 
 import requests
-from PIL import Image
-import pytesseract
+
+try:
+    from PIL import Image
+    import pytesseract
+except ImportError:  # Local route tests do not need OCR dependencies.
+    Image = None  # type: ignore[assignment]
+    pytesseract = None  # type: ignore[assignment]
 
 
 HERMES_BASE_URL = os.environ.get("HERMES_BASE_URL", "http://hermes:8642/v1").rstrip("/")
@@ -61,28 +67,54 @@ REALTIME_SEARCH_ENABLED = os.environ.get("OPDS_REALTIME_SEARCH_ENABLED", "true")
 REALTIME_SEARCH_URL = os.environ.get("OPDS_REALTIME_SEARCH_URL", "http://searxng:8080/search?q={query}&format=json")
 REALTIME_SEARCH_TIMEOUT = float(os.environ.get("OPDS_REALTIME_SEARCH_TIMEOUT", "4"))
 REALTIME_SEARCH_MAX_RESULTS = int(os.environ.get("OPDS_REALTIME_SEARCH_MAX_RESULTS", "6"))
+DELEGATE_OPENWEBUI_NATIVE_TOOLS = os.environ.get("OPDS_DELEGATE_OPENWEBUI_NATIVE_TOOLS", "true").lower() == "true"
 
 
-AGENT_PATTERNS = [
-    r"/host\b",
-    r"/Users/",
-    r"~/",
-    r"\b(?:terminal|bash|shell|python|cron|memory|skill|subagent)\b",
-    r"工具|调用|执行|运行|命令|终端|脚本",
-    r"创建.*(?:文件|目录|提醒|任务|网页|网站|PPT|幻灯片|报告|周报)",
-    r"生成.*(?:文件|网页|网站|PPT|幻灯片|报告|周报|index\.html)",
-    r"保存到|写入|落盘|输出到|实际创建|实际使用",
-    r"提醒我|定时|闹钟|计划任务|后台任务",
-    r"记住|长期记忆|你记得|记忆|偏好",
-    r"Hermes|真任务|Agent\s*(?:模式|路由|权限|能力)|切到.*Agent|用.*Agent",
-    r"桌面|文件夹|目录|下载目录|Documents|Downloads|Desktop",
-    r"查看.*文件|列出.*文件|整理.*文件|移动.*文件|删除.*文件|重命名",
-    r"上传图片|截图|证据图|图片路径|OCR",
-    r"(?:今天|今日|最新|最近|近期|刚刚|实时|当前|现在).*(?:早报|日报|简报|新闻|资讯|动态|热点|信息|调研|整理)",
-    r"(?:早报|日报|简报|新闻|资讯|动态|热点).*(?:今天|今日|最新|最近|近期|当前|现在|AI|大模型)",
-    r"(?:搜索|搜一下|查一下|联网|网上|全网|资料|调研|信息整理|整理.*信息)",
-    r"(?:AI圈|模型圈|大模型圈|科技圈).*(?:早报|日报|简报|新闻|资讯|动态|热点|整理)",
+ROUTE_RULES: list[dict[str, Any]] = [
+    {"label": "host-path", "summary": "本机文件任务", "patterns": [r"/host\b", r"/Users/", r"~/"]},
+    {"label": "schedule", "summary": "提醒/定时任务", "patterns": [r"提醒我|定时|闹钟|计划任务|后台任务", r"\bcron\b"]},
+    {"label": "memory", "summary": "长期记忆任务", "patterns": [r"记住|长期记忆|你记得|记忆|偏好", r"\bmemory\b"]},
+    {"label": "image", "summary": "图片/OCR 任务", "patterns": [r"上传图片|截图|证据图|图片路径|OCR"]},
+    {
+        "label": "realtime",
+        "summary": "实时资讯/资料整理任务",
+        "patterns": [
+            r"(?:今天|今日|最新|最近|近期|刚刚|实时|当前|现在).*(?:早报|日报|简报|新闻|资讯|动态|热点|信息|调研|整理)",
+            r"(?:早报|日报|简报|新闻|资讯|动态|热点).*(?:今天|今日|最新|最近|近期|当前|现在|AI|大模型)",
+            r"(?:搜索|搜一下|查一下|联网|网上|全网|资料|调研|信息整理|整理.*信息)",
+            r"(?:AI圈|模型圈|大模型圈|科技圈).*(?:早报|日报|简报|新闻|资讯|动态|热点|整理)",
+        ],
+    },
+    {
+        "label": "tools",
+        "summary": "工具/终端任务",
+        "patterns": [
+            r"\b(?:terminal|bash|shell|python|skill|subagent)\b",
+            r"工具|调用|执行|运行|命令|终端|脚本",
+            r"Hermes|真任务|Agent\s*(?:模式|路由|权限|能力)|切到.*Agent|用.*Agent",
+        ],
+    },
+    {
+        "label": "artifact",
+        "summary": "文件/网页产出任务",
+        "patterns": [
+            r"创建.*(?:文件|目录|提醒|任务|网页|网站|PPT|幻灯片|报告|周报)",
+            r"生成.*(?:文件|网页|网站|PPT|幻灯片|报告|周报|index\.html)",
+            r"做成.*(?:网站|网页|页面|PPT|幻灯片)|网站形式|网页形式",
+            r"保存到|写入|落盘|输出到|实际创建|实际使用",
+        ],
+    },
+    {
+        "label": "local-files",
+        "summary": "本机文件任务",
+        "patterns": [
+            r"桌面|文件夹|目录|下载目录|Documents|Downloads|Desktop",
+            r"查看.*文件|列出.*文件|整理.*文件|移动.*文件|删除.*文件|重命名",
+        ],
+    },
 ]
+
+AGENT_PATTERNS = [pattern for rule in ROUTE_RULES for pattern in rule["patterns"]]
 
 ARTIFACT_PATTERNS = [
     r"网页|网站|PPT|幻灯片|演示文稿|index\.html|HTML",
@@ -99,6 +131,18 @@ REALTIME_RESEARCH_PATTERNS = [
 
 def log(message: str) -> None:
     print(f"[image-bridge] {message}", file=sys.stderr, flush=True)
+
+
+def log_event(event: str, **fields: Any) -> None:
+    safe: dict[str, Any] = {
+        "ts": dt.datetime.now(dt.UTC).isoformat(),
+        "event": event,
+    }
+    for key, value in fields.items():
+        if value is None:
+            continue
+        safe[key] = value if isinstance(value, (str, int, float, bool)) else str(value)
+    print(f"[image-bridge-json] {json.dumps(safe, ensure_ascii=False)}", file=sys.stderr, flush=True)
 
 
 def now_slug() -> str:
@@ -141,6 +185,8 @@ def save_image(raw: bytes, mime: str, session_dir: Path, index: int) -> Path:
 
 
 def ocr_image(path: Path) -> tuple[str, tuple[int, int] | None, str | None]:
+    if Image is None or pytesseract is None:
+        return "", None, "OCR 依赖未安装；容器镜像会安装 pillow/pytesseract。"
     try:
         with Image.open(path) as image:
             size = image.size
@@ -290,9 +336,7 @@ def should_route_to_hermes(payload: dict[str, Any], image_count: int) -> tuple[b
     if not DEEPSEEK_API_KEY:
         return True, "missing-deepseek-key"
     if image_count:
-        return True, "image"
-    if payload.get("tools") or payload.get("tool_choice"):
-        return True, "explicit-tools"
+        return True, "image:attachment"
     messages = payload.get("messages")
     if not isinstance(messages, list):
         return True, "no-messages"
@@ -304,10 +348,48 @@ def should_route_to_hermes(payload: dict[str, Any], image_count: int) -> tuple[b
     if lowered.startswith(("/fast", "fast:", "chat:")):
         return False, "forced-fast"
 
-    for pattern in AGENT_PATTERNS:
-        if re.search(pattern, text, re.IGNORECASE):
-            return True, f"pattern:{pattern}"
+    route = classify_text_route(text)
+    if payload.get("tools") or payload.get("tool_choice"):
+        if DELEGATE_OPENWEBUI_NATIVE_TOOLS:
+            label = route.split(":", 1)[0] if route else ""
+            if label not in {"host-path", "artifact", "schedule", "memory", "image"}:
+                return False, "openwebui-native-tools"
+        if not route:
+            return True, "explicit-tools"
+    if route:
+        return True, route
     return False, "simple-chat"
+
+
+def classify_text_route(text: str) -> str | None:
+    for index, rule in enumerate(ROUTE_RULES):
+        for pattern in rule["patterns"]:
+            if re.search(pattern, text, re.IGNORECASE):
+                return f"{rule['label']}:{index}:{pattern}"
+    return None
+
+
+def route_prompt_for_testing(
+    text: str,
+    image_count: int = 0,
+    has_tools: bool = False,
+    lightweight: bool = True,
+    has_deepseek_key: bool = True,
+) -> dict[str, str]:
+    payload: dict[str, Any] = {"messages": [{"role": "user", "content": text}]}
+    if has_tools:
+        payload["tools"] = [{"type": "function", "function": {"name": "dummy", "parameters": {}}}]
+
+    original_lightweight = ENABLE_LIGHTWEIGHT_ROUTING
+    original_deepseek_key = DEEPSEEK_API_KEY
+    globals()["ENABLE_LIGHTWEIGHT_ROUTING"] = lightweight
+    globals()["DEEPSEEK_API_KEY"] = "test-key" if has_deepseek_key else ""
+    try:
+        route_hermes, reason = should_route_to_hermes(payload, image_count)
+    finally:
+        globals()["ENABLE_LIGHTWEIGHT_ROUTING"] = original_lightweight
+        globals()["DEEPSEEK_API_KEY"] = original_deepseek_key
+    return {"route": "hermes" if route_hermes else "deepseek-lite", "reason": reason}
 
 
 def is_artifact_task(text: str) -> bool:
@@ -398,16 +480,18 @@ def lite_system_message() -> dict[str, str]:
     return {"role": "system", "content": "\n".join(parts)}
 
 
-def prepare_deepseek_payload(payload: dict[str, Any]) -> bytes:
+def prepare_deepseek_payload(payload: dict[str, Any], preserve_tools: bool = False) -> bytes:
     direct = dict(payload)
     direct["model"] = DEFAULT_MODEL
     direct.setdefault("thinking", {"type": "disabled"})
     messages = direct.get("messages")
     if isinstance(messages, list):
         direct["messages"] = [lite_system_message(), *messages]
-    # The direct DeepSeek path is for plain chat; do not leak OpenWebUI/Hermes-only params.
-    direct.pop("tools", None)
-    direct.pop("tool_choice", None)
+    # Plain chat should not leak OpenWebUI/Hermes-only params. If OpenWebUI
+    # injected native tools, preserve them so OpenWebUI can complete that loop.
+    if not preserve_tools:
+        direct.pop("tools", None)
+        direct.pop("tool_choice", None)
     return json.dumps(direct, ensure_ascii=False).encode("utf-8")
 
 
@@ -508,24 +592,44 @@ def extract_openai_message_content(content: bytes, upstream_name: str) -> str:
 
 
 def human_route_reason(reason: str) -> str:
-    if reason == "image":
+    label = reason.split(":", 1)[0]
+    if label == "image":
         return "图片/OCR 任务"
     if reason in {"explicit-tools", "forced-agent"}:
         return "用户明确要求工具/Agent 能力"
+    if reason == "openwebui-native-tools":
+        return "OpenWebUI 原生工具任务"
     if reason in {"missing-deepseek-key", "routing-disabled", "no-messages", "non-chat"}:
         return "需要 Agent 执行路径"
-    pattern = reason.removeprefix("pattern:")
-    if any(word in pattern for word in ("今天", "今日", "最新", "早报", "新闻", "资讯", "搜索", "调研", "AI圈")):
-        return "实时资讯/资料整理任务"
-    if any(word in pattern for word in ("网页", "网站", "PPT", "文件", "写入", "保存")):
-        return "文件/网页产出任务"
-    if any(word in pattern for word in ("提醒", "定时", "闹钟")):
-        return "提醒/定时任务"
-    if any(word in pattern for word in ("记住", "记忆")):
-        return "长期记忆任务"
-    if any(word in pattern for word in ("桌面", "目录", "Downloads", "Desktop")):
-        return "本机文件任务"
+    for rule in ROUTE_RULES:
+        if rule["label"] == label:
+            return str(rule["summary"])
     return "普通聊天做不到的 Agent 任务"
+
+
+def friendly_upstream_error(upstream_name: str, error: str, status_code: int | None = None) -> str:
+    layer = "Hermes Agent" if upstream_name == "hermes" else "DeepSeek 轻量问答"
+    status = f"HTTP {status_code}" if status_code else "连接错误"
+    hints = [
+        "确认 Docker 服务还在运行：`docker compose ps`。",
+        "查看最近日志：`docker compose logs hermes hermes-bridge --tail 120`。",
+    ]
+    if upstream_name == "hermes":
+        hints.append("如果是网页/PPT/长文件任务，不要降低 `HERMES_AGENT_MAX_TOKENS=32768`。")
+    else:
+        hints.append("如果是 API Key、余额或网络问题，请检查 DeepSeek 控制台和 `.env`。")
+    return (
+        f"任务没有完成，卡在 {layer} 层（{status}）。\n\n"
+        f"错误摘要：{error[:1200]}\n\n"
+        "可以这样排查：\n- " + "\n- ".join(hints)
+    )
+
+
+def route_reason_header(reason: str) -> str:
+    parts = reason.split(":", 2)
+    if len(parts) >= 2 and parts[1].isdigit():
+        return f"{parts[0]}:{parts[1]}"
+    return re.sub(r"[^A-Za-z0-9_.:-]", "_", reason)[:160]
 
 
 def hermes_system_message(payload: dict[str, Any], reason: str) -> dict[str, str]:
@@ -633,13 +737,25 @@ class BridgeHandler(BaseHTTPRequestHandler):
             "choices": [{"index": 0, "delta": delta, "finish_reason": finish_reason}],
         }
 
-    def proxy_hermes_with_progress(self, target_url: str, headers: dict[str, str], body_bytes: bytes, model: str, reason: str) -> None:
+    def proxy_hermes_with_progress(
+        self,
+        target_url: str,
+        headers: dict[str, str],
+        body_bytes: bytes,
+        model: str,
+        reason: str,
+        request_id: str,
+    ) -> None:
+        started = time.perf_counter()
         stream_id = f"chatcmpl-opds-{uuid.uuid4().hex}"
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
         self.send_header("Connection", "keep-alive")
         self.send_header("X-Accel-Buffering", "no")
+        self.send_header("X-OpenDeepSeek-Request-Id", request_id)
+        self.send_header("X-OpenDeepSeek-Route", "hermes")
+        self.send_header("X-OpenDeepSeek-Route-Reason", route_reason_header(reason))
         self.send_header("Transfer-Encoding", "chunked")
         self.end_headers()
 
@@ -659,11 +775,27 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 timeout=REQUEST_TIMEOUT,
             )
             if response.status_code >= 400:
-                final_text = f"Hermes Agent 调用失败（HTTP {response.status_code}）：{response.text[:1200]}"
+                final_text = friendly_upstream_error("hermes", response.text, response.status_code)
+                log_event(
+                    "upstream_error",
+                    request_id=request_id,
+                    upstream="hermes",
+                    status=response.status_code,
+                    reason=reason,
+                    duration_ms=round((time.perf_counter() - started) * 1000, 1),
+                )
             else:
                 final_text = extract_openai_message_content(response.content, "hermes")
         except Exception as exc:  # noqa: BLE001
-            final_text = f"Hermes Agent 调用失败：{exc}"
+            final_text = friendly_upstream_error("hermes", str(exc))
+            log_event(
+                "upstream_exception",
+                request_id=request_id,
+                upstream="hermes",
+                reason=reason,
+                error_type=type(exc).__name__,
+                duration_ms=round((time.perf_counter() - started) * 1000, 1),
+            )
 
         if final_text:
             if not self.write_sse_event(self.sse_chunk(stream_id, model, final_text)):
@@ -676,8 +808,18 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.wfile.flush()
         except BrokenPipeError:
             log("client disconnected at end of Hermes progress stream")
+        log_event(
+            "request_complete",
+            request_id=request_id,
+            upstream="hermes",
+            route_reason=reason,
+            progress_stream=True,
+            duration_ms=round((time.perf_counter() - started) * 1000, 1),
+        )
 
     def proxy(self) -> None:
+        started = time.perf_counter()
+        request_id = uuid.uuid4().hex[:12]
         if self.path == "/health":
             body = b"ok"
             self.send_response(200)
@@ -705,6 +847,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         route_reason = "non-chat"
         requested_model = "hermes-agent"
         upstream_name = "hermes"
+        preserve_native_tools = False
         if self.command in {"POST", "PUT", "PATCH"}:
             length = int(self.headers.get("Content-Length", "0") or "0")
             body_bytes = self.rfile.read(length) if length else b""
@@ -736,16 +879,29 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         target_url = urljoin(target_base_url + "/", self.path.lstrip("/").removeprefix("v1/"))
                         if DEEPSEEK_API_KEY:
                             headers["Authorization"] = f"Bearer {DEEPSEEK_API_KEY}"
-                        body_bytes = prepare_deepseek_payload(payload)
+                        preserve_native_tools = reason == "openwebui-native-tools"
+                        body_bytes = prepare_deepseek_payload(payload, preserve_tools=preserve_native_tools)
                         stream_response = client_requested_stream
                         upstream_name = "deepseek-lite"
                     log(f"route {self.path} -> {upstream_name} ({reason}) stream={stream_response} progress={progress_stream}")
+                    log_event(
+                        "route_decision",
+                        request_id=request_id,
+                        path=self.path,
+                        upstream=upstream_name,
+                        route="hermes" if route_hermes else "deepseek-lite",
+                        reason=reason,
+                        stream=stream_response,
+                        progress_stream=progress_stream,
+                        preserve_native_tools=preserve_native_tools,
+                    )
                     headers["Content-Type"] = "application/json"
                 except Exception as exc:  # noqa: BLE001
                     log(f"payload sanitize failed, forwarding original body: {exc}")
+                    log_event("payload_sanitize_failed", request_id=request_id, error_type=type(exc).__name__)
 
         if progress_stream:
-            self.proxy_hermes_with_progress(target_url, headers, body_bytes, requested_model, route_reason)
+            self.proxy_hermes_with_progress(target_url, headers, body_bytes, requested_model, route_reason, request_id)
             return
 
         try:
@@ -758,25 +914,63 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 timeout=REQUEST_TIMEOUT,
             )
         except Exception as exc:  # noqa: BLE001
-            body = json.dumps({"error": f"bridge {upstream_name} upstream error: {exc}"}, ensure_ascii=False).encode("utf-8")
+            log_event(
+                "upstream_exception",
+                request_id=request_id,
+                upstream=upstream_name,
+                route_reason=route_reason,
+                error_type=type(exc).__name__,
+                duration_ms=round((time.perf_counter() - started) * 1000, 1),
+            )
+            body = json.dumps({"error": friendly_upstream_error(upstream_name, str(exc))}, ensure_ascii=False).encode("utf-8")
             self.send_response(502)
             self.send_header("Content-Type", "application/json")
+            self.send_header("X-OpenDeepSeek-Request-Id", request_id)
+            self.send_header("X-OpenDeepSeek-Route", upstream_name)
+            self.send_header("X-OpenDeepSeek-Route-Reason", route_reason_header(route_reason))
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
             return
 
         if not stream_response:
-            content = augment_openai_response(response.content, upstream_name)
+            if response.status_code >= 400:
+                raw_error = response.text[:1200]
+                content = json.dumps(
+                    {"error": friendly_upstream_error(upstream_name, raw_error, response.status_code)},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+                log_event(
+                    "upstream_error",
+                    request_id=request_id,
+                    upstream=upstream_name,
+                    route_reason=route_reason,
+                    status=response.status_code,
+                    duration_ms=round((time.perf_counter() - started) * 1000, 1),
+                )
+            else:
+                content = augment_openai_response(response.content, upstream_name)
             self.send_response(response.status_code)
             for key, value in response.headers.items():
                 if key.lower() in hop_by_hop_headers():
                     continue
                 self.send_header(key, value)
+            self.send_header("X-OpenDeepSeek-Request-Id", request_id)
+            self.send_header("X-OpenDeepSeek-Route", upstream_name)
+            self.send_header("X-OpenDeepSeek-Route-Reason", route_reason_header(route_reason))
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
             self.wfile.flush()
+            log_event(
+                "request_complete",
+                request_id=request_id,
+                upstream=upstream_name,
+                route_reason=route_reason,
+                status=response.status_code,
+                stream=False,
+                duration_ms=round((time.perf_counter() - started) * 1000, 1),
+            )
             return
 
         self.send_response(response.status_code)
@@ -784,6 +978,9 @@ class BridgeHandler(BaseHTTPRequestHandler):
             if key.lower() in hop_by_hop_headers():
                 continue
             self.send_header(key, value)
+        self.send_header("X-OpenDeepSeek-Request-Id", request_id)
+        self.send_header("X-OpenDeepSeek-Route", upstream_name)
+        self.send_header("X-OpenDeepSeek-Route-Reason", route_reason_header(route_reason))
         self.send_header("Transfer-Encoding", "chunked")
         self.end_headers()
 
@@ -803,6 +1000,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
             self.wfile.flush()
         except BrokenPipeError:
             log(f"client disconnected at end of {upstream_name} stream")
+        log_event(
+            "request_complete",
+            request_id=request_id,
+            upstream=upstream_name,
+            route_reason=route_reason,
+            status=response.status_code,
+            stream=True,
+            duration_ms=round((time.perf_counter() - started) * 1000, 1),
+        )
 
 
 def main() -> None:

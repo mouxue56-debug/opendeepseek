@@ -13,9 +13,15 @@
 
 ## 用户会看到什么
 
-访问 `http://localhost:3001` 后，用户只需要做三件事：
+访问 `http://localhost:3001` 后，用户先看到一个中文项目介绍页，包含：
 
-1. 点击“开始配置”。
+- OpenDeepSeek 是什么：Open WebUI + Smart Bridge + Hermes Agent + DeepSeek V4 Flash。
+- 为什么不是普通聊天工具：普通问答轻量直连，真实任务路由到 Hermes。
+- 怎么运行：一键安装、本地仓库启动、手动 Docker Compose 三种方式。
+
+随后用户点击“填写 API Key 并启动”，只需要做三件事：
+
+1. 点击“填写 API Key 并启动”。
 2. 粘贴 DeepSeek API Key。
 3. 选择模型，默认 `deepseek-v4-flash`，然后点击“激活并启动”。
 

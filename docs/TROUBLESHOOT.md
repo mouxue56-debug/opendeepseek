@@ -152,6 +152,17 @@ nano docker-compose.yml
 
 ## 启动后（容器启动了但用不了）
 
+### 先跑一键自检
+
+如果你不确定问题在哪一层，先运行：
+
+```bash
+./setup.sh verify
+python3 scripts/benchmark_routing.py
+```
+
+`verify` 会只读检查 `.env`、Docker Compose、端口、`/host` 挂载、Hermes 输出预算和安全绑定，不会修改 OpenWebUI 数据库。`benchmark_routing.py` 不消耗 API，用 50 条本地样例确认“普通聊天走 DeepSeek、真任务走 Hermes”的路由没有退化。
+
 ### ❌ 症状：浏览器打开 http://localhost:3000 显示"无法访问"
 
 **原因**：服务还没完全起来 / 起了但崩溃退出了
@@ -299,6 +310,19 @@ docker compose up -d --build
 ```
 
 新版会做三件事：给 Hermes 任务设置合理输出/迭代上限、让长 Agent 任务先完整执行再回传、要求 Hermes 在说“已保存”前验证文件存在且大小大于 0。特别复杂的网页/PPT，建议让它先生成大纲，再说“按这个大纲生成 HTML/PPT 文件”，成功率更高。
+
+### ❌ 症状：OpenWebUI 设置改了但没生效
+
+**原因**：OpenWebUI 有些配置会在第一次启动后写进自己的数据库。之后你只改 `.env`，不一定会覆盖已经持久化的 UI 配置。
+
+**解决**：
+
+1. 先跑只读检查：
+   ```bash
+   ./setup.sh verify
+   ```
+2. 如果是 OpenWebUI 自带设置（例如搜索、模型、功能开关），优先在 OpenWebUI 管理后台里改。
+3. 不要直接删除 OpenWebUI 数据卷，除非你已经备份聊天、知识库和账号数据。`docker compose down -v` 会删除这些数据。
 
 ### ❌ 症状：上传 PDF 后 AI 说"我看不到内容"
 
