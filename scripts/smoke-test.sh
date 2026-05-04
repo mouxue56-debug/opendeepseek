@@ -24,11 +24,11 @@ fail() { echo -e "${RED}❌ $1${NC}"; FAIL=$((FAIL+1)); }
 info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
 
 echo "════════════════════════════════════════════"
-echo "   OpenDeepSeek Smoke Test (v0.4.2 - Smart Bridge 架构)"
+echo "   OpenDeepSeek Smoke Test (v0.4.3 - Smart Bridge 架构)"
 echo "════════════════════════════════════════════"
 echo ""
 
-info "[0/10] 离线路由回归（不消耗 API）"
+info "[0/11] 离线路由回归（不消耗 API）"
 if python3 scripts/benchmark_routing.py > /tmp/opds-routing-benchmark.txt 2>&1; then
     ok "离线路由回归通过"
 else
@@ -37,7 +37,7 @@ else
 fi
 
 # 1. .env 存在
-info "[1/10] 检查 .env 文件"
+info "[1/11] 检查 .env 文件"
 if [[ -f .env ]] && grep -v '^\s*#' .env | grep -qE "^DEEPSEEK_API_KEY[[:space:]]*=" && ! grep -q "DEEPSEEK_API_KEY=your-deepseek-api-key-here" .env; then
     ok ".env 配置完毕"
 else
@@ -52,7 +52,7 @@ else
 fi
 
 # 2. 三个容器状态（hermes + hermes-bridge + open-webui）
-info "[2/10] 检查容器状态"
+info "[2/11] 检查容器状态"
 RUNNING=$(docker compose ps --status running --format json 2>/dev/null)
 if echo "$RUNNING" | grep -q opendeepseek-hermes; then
     ok "hermes 容器运行中"
@@ -74,7 +74,7 @@ else
 fi
 
 # 3. Hermes 健康端点
-info "[3/10] 检查 Hermes 健康端点"
+info "[3/11] 检查 Hermes 健康端点"
 if curl -fsS http://localhost:8642/health > /dev/null 2>&1; then
     ok "Hermes /health 返回 OK"
 else
@@ -82,7 +82,7 @@ else
 fi
 
 # 4. Smart Bridge 健康端点
-info "[4/10] 检查 Hermes Smart Bridge 健康端点"
+info "[4/11] 检查 Hermes Smart Bridge 健康端点"
 if docker compose exec -T hermes-bridge python -c "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')" > /dev/null 2>&1; then
     ok "hermes-bridge /health 返回 OK"
 else
@@ -90,7 +90,7 @@ else
 fi
 
 # 5. Open WebUI 可达
-info "[5/10] 检查 Open WebUI 网页"
+info "[5/11] 检查 Open WebUI 网页"
 if curl -fsS http://localhost:3000 > /dev/null 2>&1; then
     ok "Open WebUI :3000 可访问"
 else
@@ -98,7 +98,7 @@ else
 fi
 
 # 6. Hermes 模型列表（应该暴露 hermes-agent）
-info "[6/10] 检查 Hermes 暴露的模型"
+info "[6/11] 检查 Hermes 暴露的模型"
 HERMES_KEY=$(grep -m1 "^HERMES_API_KEY=" .env | cut -d'=' -f2- | sed -E 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^["'"'"']|["'"'"']$//g')
 MODELS_RESP=$(curl -fsS http://localhost:8642/v1/models -H "Authorization: Bearer ${HERMES_KEY}" 2>&1 || echo "FAIL")
 if echo "$MODELS_RESP" | grep -q "hermes-agent"; then
@@ -110,7 +110,7 @@ fi
 
 # 7. 真实端到端：普通问答 → Bridge → DeepSeek 轻量路径
 # 这是项目核心架构验证，不能假阳性
-info "[7/10] 真实端到端：Smart Bridge → DeepSeek 轻量问答"
+info "[7/11] 真实端到端：Smart Bridge → DeepSeek 轻量问答"
 TMP_RESP=$(mktemp)
 docker compose exec -T -e HERMES_KEY="${HERMES_KEY}" hermes-bridge python - <<'PY' > "$TMP_RESP" 2>&1 || echo "FAIL"
 import json
@@ -149,8 +149,41 @@ else
     echo "    prompt_tokens: $USAGE"
 fi
 
-# 8. 实时资讯 / 搜索类请求必须进 Hermes，并先给用户进度提示
-info "[8/10] 验证实时资讯类请求路由到 Hermes，并先返回进度提示"
+# 8. Open WebUI 入口 → Bridge → DeepSeek。防止压缩响应或模型代理问题导致前端显示 Server Connection Error。
+info "[8/11] 真实端到端：Open WebUI → Smart Bridge → DeepSeek"
+WEBUI_AUTH_MODE=$(grep -m1 "^WEBUI_AUTH=" .env | cut -d'=' -f2- | tr -d '[:space:]"'"'"'' || true)
+if [[ "${WEBUI_AUTH_MODE:-false}" == "false" ]]; then
+    WEBUI_TOKEN=$(curl -fsS -X POST http://localhost:3000/api/v1/auths/signin \
+        -H "Content-Type: application/json" \
+        -d '{"email":"admin@localhost","password":"admin"}' | jq -r '.token // ""' 2>/dev/null || true)
+    if [[ -z "$WEBUI_TOKEN" ]]; then
+        fail "Open WebUI no-auth 会话获取失败"
+    else
+        TMP_WEBUI=$(mktemp)
+        curl -fsS http://localhost:3000/openai/chat/completions \
+            -H "Authorization: Bearer ${WEBUI_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "hermes-agent",
+              "messages": [{"role":"user","content":"Output exactly WEBUI_OK and nothing else."}],
+              "max_tokens": 40,
+              "stream": false
+            }' > "$TMP_WEBUI" 2>&1 || echo "FAIL" > "$TMP_WEBUI"
+        WEBUI_REPLY=$(jq -r '.choices[0].message.content // .detail // .error.message // ""' "$TMP_WEBUI" 2>/dev/null)
+        rm -f "$TMP_WEBUI"
+        if [[ "$(echo "$WEBUI_REPLY" | tr -d '[:space:]')" == "WEBUI_OK" ]]; then
+            ok "Open WebUI 入口普通问答链路通（不是 Server Connection Error）"
+        else
+            fail "Open WebUI 入口普通问答失败"
+            echo "    回复: $(echo "$WEBUI_REPLY" | head -c 300)"
+        fi
+    fi
+else
+    info "WEBUI_AUTH=true，跳过默认 admin no-auth 入口测试"
+fi
+
+# 9. 实时资讯 / 搜索类请求必须进 Hermes，并先给用户进度提示
+info "[9/11] 验证实时资讯类请求路由到 Hermes，并先返回进度提示"
 TMP_ROUTE=$(mktemp)
 docker compose exec -T -e HERMES_KEY="${HERMES_KEY}" hermes-bridge python - <<'PY' > "$TMP_ROUTE" 2>&1 || echo "FAIL"
 import json
@@ -186,8 +219,8 @@ else
     echo "    响应: $(echo "$ROUTE_REPLY" | head -c 500)"
 fi
 
-# 9. Hermes Skills 激活验证（Cron）
-info "[9/10] 验证 Hermes Skills 是否激活（Cron skill）"
+# 10. Hermes Skills 激活验证（Cron）
+info "[10/11] 验证 Hermes Skills 是否激活（Cron skill）"
 TMP_CRON=$(mktemp)
 curl -fsS http://localhost:8642/v1/chat/completions \
     -H "Authorization: Bearer ${HERMES_KEY}" \
@@ -209,8 +242,8 @@ else
     info "（首次启动 skills 索引可能未就绪，等 1-2 分钟再测）"
 fi
 
-# 10. 真 Agent 文件系统权限：/host 是否挂载，Bridge 是否能把任务路由到 Hermes 并实际写文件
-info "[10/10] 验证 Smart Bridge → Hermes 本机文件系统权限（/host）"
+# 11. 真 Agent 文件系统权限：/host 是否挂载，Bridge 是否能把任务路由到 Hermes 并实际写文件
+info "[11/11] 验证 Smart Bridge → Hermes 本机文件系统权限（/host）"
 if docker compose exec -T hermes test -d /host; then
     ok "Hermes 容器已挂载 /host"
 else

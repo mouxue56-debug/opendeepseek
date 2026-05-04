@@ -836,6 +836,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
             for key, value in self.headers.items()
             if key.lower() not in hop_by_hop_headers()
         }
+        # Open WebUI/aiohttp may advertise zstd/br. The bridge rewrites
+        # response body framing itself, so ask upstreams for plain JSON/SSE and
+        # avoid handing compressed bytes to Open WebUI as if they were UTF-8.
+        headers["Accept-Encoding"] = "identity"
         headers.pop("Authorization", None)
         if HERMES_API_KEY:
             # Do not pass Open WebUI's placeholder key through to Hermes.
