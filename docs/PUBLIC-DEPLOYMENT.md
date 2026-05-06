@@ -157,7 +157,7 @@ http://localhost:3000
 | `onboarding/static/style.css` | 引导页样式 |
 | `onboarding/server.py` | 本地 HTTP server，监听 `127.0.0.1:3001` |
 | `setup.sh --web` | 启动 onboarding server |
-| `OpenDeepSeek.command` | macOS 双击入口，内部运行 `./setup.sh --web` |
+| `OpenDeepSeek.command` | macOS 双击入口：首次运行配置向导，后续轻量启动核心服务 |
 
 引导页的接口：
 
@@ -190,18 +190,24 @@ http://localhost:3001
 
 1. 解压 `OpenDeepSeek.zip`。
 2. 双击 `OpenDeepSeek.command`。
-3. 浏览器会打开配置向导。
+3. 首次运行时浏览器会打开配置向导。
 4. 粘贴 DeepSeek API Key。
 5. 等待安装完成。
-6. 打开 `http://localhost:3000` 使用。
+6. 之后再双击会自动启动轻量核心服务并打开 `http://localhost:3000`。
 
-`OpenDeepSeek.command` 本质上等价于：
+首次运行等价于：
 
 ```bash
 ./setup.sh --web
 ```
 
-它适合不想碰命令行的 macOS 用户。
+之后等价于：
+
+```bash
+./setup.sh start
+```
+
+它适合不想碰命令行的 macOS 用户。需要联网搜索时再手动运行 `./setup.sh start-full`。
 
 ---
 

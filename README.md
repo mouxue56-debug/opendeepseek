@@ -126,7 +126,7 @@ cd opendeepseek
 
 完成后浏览器自动打开 http://localhost:3000，**直接对话不用注册**。
 
-macOS 用户也可以直接双击 `OpenDeepSeek.command`，它会自动打开浏览器配置向导。
+macOS 用户也可以直接双击 `OpenDeepSeek.command`。首次使用会打开浏览器配置向导；以后会自动唤起 OrbStack/Docker、轻量启动核心服务并打开 `http://localhost:3000`。如果系统拦截，先右键 `OpenDeepSeek.command` → 打开。
 
 ### 发布前 / 出错时自检
 

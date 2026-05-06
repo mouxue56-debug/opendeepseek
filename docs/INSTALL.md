@@ -47,7 +47,7 @@ chmod +x setup.sh
 5. 修复 Hermes 默认模型为 DeepSeek V4 Flash / Pro
 6. 等待健康检查通过并打印访问地址
 
-macOS 用户也可以双击项目根目录的 `OpenDeepSeek.command`，效果等同于执行 `./setup.sh --web`。
+macOS 用户也可以双击项目根目录的 `OpenDeepSeek.command`。首次使用会打开 `./setup.sh --web` 配置向导；已有 `.env` 时会自动唤起 OrbStack/Docker，执行 `./setup.sh start` 并打开 `http://localhost:3000`。
 
 安装完成后，终端会显示：
 
