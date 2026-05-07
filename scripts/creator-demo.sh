@@ -99,11 +99,33 @@ http_code() {
   curl -L -sS -o /dev/null -w "%{http_code}" --connect-timeout 8 --max-time 20 "$1" 2>/dev/null || true
 }
 
+http_code_retry() {
+  local url="$1"
+  local code=""
+  local attempt
+  for attempt in 1 2 3; do
+    code="$(http_code "$url")"
+    if [[ "$code" == "200" || "$code" == "301" || "$code" == "302" ]]; then
+      printf '%s\n' "$code"
+      return 0
+    fi
+    sleep "$attempt"
+  done
+  printf '%s\n' "$code"
+}
+
 raw_installer_ok() {
   local url="$1"
   local out="$2"
-  curl -L -sS -o "$out" --connect-timeout 8 --max-time 30 "$url" 2>/dev/null \
-    && grep -q "OpenDeepSeek CN smart installer" "$out"
+  local attempt
+  for attempt in 1 2 3; do
+    if curl -L -sS -o "$out" --connect-timeout 8 --max-time 30 "$url" 2>/dev/null \
+      && grep -q "OpenDeepSeek CN smart installer" "$out"; then
+      return 0
+    fi
+    sleep "$attempt"
+  done
+  return 1
 }
 
 container_status() {
@@ -227,7 +249,7 @@ record_step "01-git-sync"
 next_step "Gitee 镜像"
 GITEE_URL="${OPDS_GITEE_PROJECT_URL:-https://gitee.com/luoxueai/opendeepseek}"
 GITEE_RAW_URL="${OPDS_GITEE_RAW_URL:-https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh}"
-code="$(http_code "$GITEE_URL")"
+code="$(http_code_retry "$GITEE_URL")"
 case "$code" in
   200|301|302) pass "HTTP ${code}" ;;
   *) fail "Gitee 镜像不可达：HTTP ${code:-000}" "去 https://gitee.com/projects/import/url 创建/同步 luoxueai/opendeepseek，或临时设置 OPDS_GITEE_PROJECT_URL。" ;;
