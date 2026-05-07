@@ -216,10 +216,16 @@ record_step "01-git-sync"
 
 next_step "Gitee 镜像"
 GITEE_URL="${OPDS_GITEE_PROJECT_URL:-https://gitee.com/luoxueai/opendeepseek}"
+GITEE_RAW_URL="${OPDS_GITEE_RAW_URL:-https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh}"
 code="$(http_code "$GITEE_URL")"
 case "$code" in
   200|301|302) pass "HTTP ${code}" ;;
   *) fail "Gitee 镜像不可达：HTTP ${code:-000}" "去 https://gitee.com/projects/import/url 创建/同步 luoxueai/opendeepseek，或临时设置 OPDS_GITEE_PROJECT_URL。" ;;
+esac
+raw_code="$(http_code "$GITEE_RAW_URL")"
+case "$raw_code" in
+  200) pass "Gitee raw install-cn.sh 可访问" ;;
+  *) fail "Gitee 仓库存在，但 install-cn.sh 不可达：HTTP ${raw_code:-000}" "请把 GitHub main 同步/推送到 Gitee，并确认 ${GITEE_RAW_URL} 能打开。" ;;
 esac
 record_step "02-gitee"
 

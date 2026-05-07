@@ -527,7 +527,7 @@ Runtime state after validation:
 
 Remaining Gitee follow-up:
 
-- User created `https://gitee.com/luoxueai/opendeepseek`; defaults now point to that repository. It still needs code sync and raw install verification before China-ready install can be considered complete.
+- User created `https://gitee.com/luoxueai/opendeepseek`; defaults now point to that repository. The demo preflight now checks both the project page and `raw/main/install-cn.sh` so an empty Gitee repo cannot pass as China-ready.
 
 Backup:
 
