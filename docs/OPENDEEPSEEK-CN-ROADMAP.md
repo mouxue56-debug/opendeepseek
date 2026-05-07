@@ -189,13 +189,13 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 新增：
 
 ```bash
-bash -c "$(curl -fsSL https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh)"
+bash -c "$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)"
 ```
 
 Windows PowerShell：
 
 ```powershell
-irm https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.ps1 | iex
+irm https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.ps1 | iex
 ```
 
 ### 5.3 `install-cn.sh` 定位
@@ -238,7 +238,7 @@ irm https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.ps1 | iex
   "commit": "xxxxxxx",
   "published_at": "2026-05-06T00:00:00+08:00",
   "sources": {
-    "gitee": "https://gitee.com/mouxue56-debug/opendeepseek",
+    "gitee": "https://gitee.com/luoxueai/opendeepseek",
     "gitcode": "https://gitcode.com/mouxue56-debug/opendeepseek",
     "github": "https://github.com/mouxue56-debug/opendeepseek"
   },

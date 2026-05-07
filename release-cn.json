@@ -7,7 +7,7 @@
   "status": "template",
   "sources": {
     "github": "https://github.com/mouxue56-debug/opendeepseek",
-    "gitee": "https://gitee.com/mouxue56-debug/opendeepseek",
+    "gitee": "https://gitee.com/luoxueai/opendeepseek",
     "gitcode": "https://gitcode.com/mouxue56-debug/opendeepseek"
   },
   "download_base_urls": {
@@ -74,8 +74,8 @@
     "sha256": "replace-after-build"
   },
   "install": {
-    "macos_linux": "bash -c \"$(curl -fsSL https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh)\"",
-    "windows_powershell": "irm https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.ps1 | iex",
+    "macos_linux": "bash -c \"$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)\"",
+    "windows_powershell": "irm https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.ps1 | iex",
     "offline": "OPDS_CN_OFFLINE=/path/to/opendeepseek-images-cn-v0.5.0-cn-amd64.tar.zst bash install-cn.sh"
   }
 }

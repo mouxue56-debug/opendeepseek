@@ -52,7 +52,7 @@ try {
 }
 
 $repo = $env:OPDS_CN_GITEE_REPO
-if (-not $repo) { $repo = "https://gitee.com/mouxue56-debug/opendeepseek.git" }
+if (-not $repo) { $repo = "https://gitee.com/luoxueai/opendeepseek.git" }
 $fallback = $env:OPDS_GITHUB_REPO
 if (-not $fallback) { $fallback = "https://github.com/mouxue56-debug/opendeepseek.git" }
 

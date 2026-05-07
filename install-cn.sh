@@ -19,7 +19,7 @@ warn() { echo -e "${YELLOW}⚠️  $1${NC}"; }
 die() { echo -e "${RED}❌ $1${NC}"; exit 1; }
 
 INSTALL_DIR="${OPDS_INSTALL_DIR:-${HOME}/opendeepseek-cn}"
-GITEE_REPO="${OPDS_CN_GITEE_REPO:-https://gitee.com/mouxue56-debug/opendeepseek.git}"
+GITEE_REPO="${OPDS_CN_GITEE_REPO:-https://gitee.com/luoxueai/opendeepseek.git}"
 GITCODE_REPO="${OPDS_CN_GITCODE_REPO:-https://gitcode.com/mouxue56-debug/opendeepseek.git}"
 GITHUB_REPO="${OPDS_GITHUB_REPO:-https://github.com/mouxue56-debug/opendeepseek.git}"
 

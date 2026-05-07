@@ -525,9 +525,9 @@ Runtime state after validation:
 - `opendeepseek-hermes`: healthy on `127.0.0.1:8642`
 - SearXNG is not running by default to keep memory lower; use `./setup.sh start-full` only when search is needed.
 
-Remaining manual blocker:
+Remaining Gitee follow-up:
 
-- Gitee mirror is still HTTP 404 at `https://gitee.com/mouxue56-debug/opendeepseek`. This requires the maintainer to create/import the mirror while logged into Gitee. Until that exists, `scripts/creator-demo.sh` will intentionally fail its Gitee mirror check.
+- User created `https://gitee.com/luoxueai/opendeepseek`; defaults now point to that repository. It still needs code sync and raw install verification before China-ready install can be considered complete.
 
 Backup:
 
@@ -547,10 +547,10 @@ Before recording:
 ./scripts/creator-demo.sh
 ```
 
-If it fails only on Gitee, create the Gitee mirror first:
+If it fails only on Gitee, verify the Gitee mirror has synced the latest GitHub `main`:
 
 ```text
-https://gitee.com/projects/import/url
+https://gitee.com/luoxueai/opendeepseek
 source: https://github.com/mouxue56-debug/opendeepseek
-name: opendeepseek
+raw check: https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh
 ```

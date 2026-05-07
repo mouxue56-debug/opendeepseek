@@ -15,7 +15,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 中国版（镜像/离线包发布后推荐国内用户使用）：
 
 ```bash
-bash -c "$(curl -fsSL https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh)"
+bash -c "$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)"
 ```
 
 当前 CN 入口已提供脚本、`docker-compose.cn.yml`、`.env.example.cn` 和网络体检骨架；正式对外宣称 China Ready 前，还需要同步 Gitee/GitCode、发布国内容器镜像和 OSS/COS 离线包。

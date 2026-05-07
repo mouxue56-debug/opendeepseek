@@ -81,7 +81,7 @@ echo "timeout: ${TIMEOUT}s"
 echo
 
 probe_url "DeepSeek API" "${DEEPSEEK_API_BASE:-https://api.deepseek.com}"
-probe_url "Gitee raw" "${OPDS_CN_GITEE_RAW:-https://gitee.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh}"
+probe_url "Gitee raw" "${OPDS_CN_GITEE_RAW:-https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh}"
 probe_url "GitCode raw" "${OPDS_CN_GITCODE_RAW:-https://gitcode.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh}"
 probe_url "阿里云 OSS release manifest" "${OPDS_CN_OSS_MANIFEST:-https://opendeepseek-cn.oss-cn-hangzhou.aliyuncs.com/releases/release-cn.json}"
 probe_url "腾讯云 COS release manifest" "${OPDS_CN_COS_MANIFEST:-https://opendeepseek-cn.cos.ap-shanghai.myqcloud.com/releases/release-cn.json}"
@@ -89,7 +89,7 @@ probe_registry "${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendee
 probe_url "清华 PyPI 镜像" "${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 probe_url "npmmirror" "${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
 
-probe_git "Gitee" "${OPDS_CN_GITEE_REPO:-https://gitee.com/mouxue56-debug/opendeepseek.git}"
+probe_git "Gitee" "${OPDS_CN_GITEE_REPO:-https://gitee.com/luoxueai/opendeepseek.git}"
 probe_git "GitCode" "${OPDS_CN_GITCODE_REPO:-https://gitcode.com/mouxue56-debug/opendeepseek.git}"
 
 if curl -fsSL --connect-timeout 2 --max-time 2 -o /dev/null http://localhost:3000/health 2>/dev/null; then
