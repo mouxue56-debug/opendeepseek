@@ -22,6 +22,7 @@ Changed files:
 - `.env.example.cn`
 - `docker-compose.cn.yml`
 - `scripts/check-network-cn.sh`
+- `scripts/creator-demo.sh`
 - `README.md`
 - `docs/zh-CN/00-我应该下载哪个版本.md`
 - `docs/zh-CN/04-国内网络问题.md`
@@ -36,6 +37,7 @@ Validation:
 - `docker manifest inspect searxng/searxng:2026.4.28-ed5955a5c`: PASS
 - Local install simulation with `OPDS_SKIP_START=true DEEPSEEK_API_KEY=sk-test-local OPDS_CN_NET_TIMEOUT=3 bash install-cn.sh`: PASS
 - Current Gitee raw fetch with visible `curl -fL --connect-timeout 10 --max-time 30 ... -o /tmp/opds-gitee-before-push.sh`: PASS
+- `scripts/creator-demo.sh` Gitee raw check was hardened to tolerate Gitee transient SSL/raw delays and to require the new `OPDS_SKIP_START` installer marker.
 
 Decisions:
 

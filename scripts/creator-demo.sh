@@ -118,9 +118,17 @@ raw_installer_ok() {
   local url="$1"
   local out="$2"
   local attempt
-  for attempt in 1 2 3; do
-    if curl -L -sS -o "$out" --connect-timeout 8 --max-time 30 "$url" 2>/dev/null \
-      && grep -q "OpenDeepSeek CN smart installer" "$out"; then
+  for attempt in 1 2 3 4 5; do
+    if curl -fL -sS \
+      --retry 2 \
+      --retry-delay 2 \
+      --retry-all-errors \
+      --connect-timeout 10 \
+      --max-time 60 \
+      -o "$out" \
+      "$url" 2>/dev/null \
+      && grep -q "OpenDeepSeek CN smart installer" "$out" \
+      && grep -q "OPDS_SKIP_START" "$out"; then
       return 0
     fi
     sleep "$attempt"
