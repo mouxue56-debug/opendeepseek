@@ -40,6 +40,7 @@ Usage:
   bash install-cn.sh
   OPDS_INSTALL_DIR=~/opendeepseek-cn bash install-cn.sh
   OPDS_CN_OFFLINE=/path/to/opendeepseek-images-cn-amd64.tar.zst bash install-cn.sh
+  OPDS_SKIP_START=true DEEPSEEK_API_KEY=sk-xxx bash install-cn.sh
 
 Environment:
   OPDS_CN_GITEE_REPO     Gitee mirror repo URL
@@ -47,6 +48,8 @@ Environment:
   OPDS_GITHUB_REPO       GitHub fallback repo URL
   OPDS_INSTALL_DIR       install directory, default ~/opendeepseek-cn
   OPDS_CN_OFFLINE        optional image tar.zst to docker load
+  OPDS_SKIP_START        true = prepare repo/env only, do not start Docker
+  DEEPSEEK_API_KEY       optional non-interactive DeepSeek API Key
 EOF
 }
 
@@ -94,7 +97,10 @@ set_env_value() {
 repo_reachable() {
   local repo="$1"
   local refs
-  refs="$(git ls-remote --heads "${repo}" main master 2>/dev/null || true)"
+  refs="$(GIT_TERMINAL_PROMPT=0 git \
+    -c http.lowSpeedLimit=1 \
+    -c "http.lowSpeedTime=${OPDS_CN_GIT_TIMEOUT:-10}" \
+    ls-remote --heads "${repo}" main master 2>/dev/null || true)"
   [[ -n "${refs}" ]]
 }
 
@@ -129,6 +135,13 @@ ensure_repo() {
   if [[ -d "${INSTALL_DIR}/.git" ]]; then
     log "进入已有安装目录：${INSTALL_DIR}"
     cd "${INSTALL_DIR}"
+    if git status --short | grep -q .; then
+      warn "安装目录已有本地改动，跳过自动更新：${INSTALL_DIR}"
+    else
+      log "更新已有安装目录"
+      git fetch --prune origin >/dev/null 2>&1 || warn "git fetch 失败，继续使用本地版本"
+      git pull --ff-only >/dev/null 2>&1 || warn "git pull --ff-only 失败，继续使用本地版本"
+    fi
     return 0
   fi
 
@@ -147,9 +160,21 @@ ensure_env() {
 
   if grep -q 'your-deepseek-api-key-here' .env; then
     echo
-    read -r -p "请输入 DeepSeek API Key（输入时会显示，确认周围无人）： " key
+    local key="${DEEPSEEK_API_KEY:-}"
+    if [[ -z "${key}" ]]; then
+      key="$(grep -E '^DEEPSEEK_API_KEY=' .env | head -n1 | cut -d= -f2- || true)"
+      [[ "${key}" == "your-deepseek-api-key-here" ]] && key=""
+    fi
+    if [[ -z "${key}" ]]; then
+      if [[ ! -t 0 ]]; then
+        die "当前不是交互终端，无法输入 DeepSeek API Key。请这样运行：DEEPSEEK_API_KEY=sk-xxx bash install-cn.sh"
+      fi
+      read -r -p "请输入 DeepSeek API Key（输入时会显示，确认周围无人）： " key
+    fi
     [[ -n "${key}" ]] || die "DeepSeek API Key 不能为空"
     set_env_value .env DEEPSEEK_API_KEY "${key}"
+    set_env_value .env OPDS_LLM_API_KEY "${key}"
+    ok "已写入 DeepSeek API Key（本机 .env，不会提交到 Git）"
   fi
 
   if grep -q 'auto-generated-by-install-cn' .env; then
@@ -175,9 +200,18 @@ load_offline_images() {
 }
 
 start_stack() {
+  if [[ "${OPDS_SKIP_START:-false}" == "true" ]]; then
+    ok "已按 OPDS_SKIP_START=true 跳过 Docker 启动"
+    echo "后续启动：cd ${PWD} && docker compose -f docker-compose.cn.yml up -d"
+    return 0
+  fi
+
   if ! docker info >/dev/null 2>&1; then
     die "Docker daemon 未启动。请先打开 Docker Desktop / OrbStack。"
   fi
+
+  log "构建本地 Smart Bridge 镜像"
+  docker compose -f docker-compose.cn.yml build hermes-bridge
 
   log "启动 OpenDeepSeek CN（只默认暴露 http://localhost:3000）"
   if docker compose -f docker-compose.cn.yml up -d; then
@@ -185,10 +219,10 @@ start_stack() {
     echo
     echo "访问：http://localhost:3000"
   else
-    warn "国内镜像拉取或启动失败。"
+    warn "Docker 镜像拉取、构建或启动失败。"
     echo
     echo "可选处理："
-    echo "1. 检查国内镜像是否已发布到 OPDS_IMAGE_REGISTRY。"
+    echo "1. 如果 Docker Hub/GHCR 慢，先配置 Docker 镜像加速或使用离线包。"
     echo "2. 使用离线包：OPDS_CN_OFFLINE=/path/images.tar.zst bash install-cn.sh"
     echo "3. 临时使用国际版：./setup.sh --web"
     exit 1

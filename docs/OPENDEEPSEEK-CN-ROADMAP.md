@@ -117,17 +117,21 @@ registry.cn-hangzhou.aliyuncs.com/opendeepseek/onboarding
 ```yaml
 services:
   open-webui:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/open-webui:${OPENWEBUI_VERSION:-0.9.2-opds-cn}
+    image: ${OPENWEBUI_IMAGE:-openwebui/open-webui:0.9.2}
 
   hermes:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/hermes:${HERMES_VERSION:-opds-cn}
+    image: ${HERMES_IMAGE:-nousresearch/hermes-agent:v2026.4.23}
 
   hermes-bridge:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/hermes-bridge:${OPDS_VERSION:-0.5.0-cn}
+    image: ${BRIDGE_IMAGE:-opendeepseek-hermes-bridge:cn-local}
+    build:
+      context: ./bridge
 
   searxng:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/searxng:${SEARXNG_VERSION:-opds-cn}
+    image: ${SEARXNG_IMAGE:-searxng/searxng:2026.4.28-ed5955a5c}
 ```
+
+注意：在国内容器镜像真正发布前，默认必须指向已公开可拉的镜像，避免用户第一天就卡死在不存在或未公开的 ACR tag 上。国内 ACR/CCR 镜像发布后，再通过 `HERMES_IMAGE` / `OPENWEBUI_IMAGE` / `BRIDGE_IMAGE` / `SEARXNG_IMAGE` 覆盖。
 
 ### 4.3 第三层：离线安装包
 
@@ -189,7 +193,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 新增：
 
 ```bash
-bash -c "$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)"
+curl -fL --connect-timeout 10 --max-time 120 \
+  https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh \
+  -o /tmp/opendeepseek-install-cn.sh && bash /tmp/opendeepseek-install-cn.sh
 ```
 
 Windows PowerShell：

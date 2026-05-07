@@ -12,13 +12,17 @@ bash <(curl -fsSL https://raw.githubusercontent.com/mouxue56-debug/opendeepseek/
 
 无需懂 Docker。脚本会检测系统依赖、clone 项目、打开配置向导、启动容器、打开浏览器。**默认家庭模式**：访问 http://localhost:3000 直接对话，**不需要注册**。
 
-中国版（镜像/离线包发布后推荐国内用户使用）：
+中国版（Gitee 入口，下载有进度和超时提示）：
 
 ```bash
-bash -c "$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)"
+curl -fL --connect-timeout 10 --max-time 120 \
+  https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh \
+  -o /tmp/opendeepseek-install-cn.sh && bash /tmp/opendeepseek-install-cn.sh
 ```
 
-当前 CN 入口已提供脚本、Gitee raw 安装入口、`docker-compose.cn.yml`、`.env.example.cn` 和网络体检骨架；正式对外宣称 China Ready 前，还需要同步 GitCode、发布国内容器镜像和 OSS/COS 离线包。
+不要用 `bash -c "$(curl -fsSL ...)"` 作为国内推荐命令；Gitee raw 慢的时候，命令替换阶段没有任何进度，用户会以为“啥都没发生”。
+
+当前 CN 入口已提供脚本、Gitee raw 安装入口、`docker-compose.cn.yml`、`.env.example.cn` 和网络体检；默认使用已公开可拉的上游镜像保证先跑起来。正式对外宣称完整 China Ready 前，还需要同步 GitCode、发布国内容器镜像和 OSS/COS 离线包。
 
 当前本地产品化进度：M0-M5 已落地，包含 release gate、中国版安装骨架、国内镜像/离线包脚本、中文 Portal、Artifact Manifest、四个 OpenDeepSeek 产品模式。云端发布动作仍需要维护者手动提供账号权限并确认。
 

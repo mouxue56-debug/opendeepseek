@@ -1,6 +1,53 @@
 # OpenDeepSeek Goal Status
 
-Last updated: 2026-05-06
+Last updated: 2026-05-07
+
+## 2026-05-07 - CN Installer P0 Hardening
+
+Status: done
+
+Trigger:
+
+- User ran `bash -c "$(curl -fsSL https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh)"` and saw no visible progress/output.
+
+Root causes:
+
+- Command substitution downloads the whole script before Bash starts; with `curl -s`, Gitee raw delays look like "nothing happened".
+- `docker-compose.cn.yml` defaulted to future ACR image names that are not publicly pullable yet.
+- CN network diagnostics could spend too long on GitCode Git deep checks.
+
+Changed files:
+
+- `install-cn.sh`
+- `.env.example.cn`
+- `docker-compose.cn.yml`
+- `scripts/check-network-cn.sh`
+- `README.md`
+- `docs/zh-CN/00-我应该下载哪个版本.md`
+- `docs/zh-CN/04-国内网络问题.md`
+- `docs/OPENDEEPSEEK-CN-ROADMAP.md`
+
+Validation:
+
+- `bash -n install-cn.sh scripts/check-network-cn.sh`: PASS
+- `docker compose -f docker-compose.cn.yml config -q`: PASS
+- `docker manifest inspect openwebui/open-webui:0.9.2`: PASS
+- `docker manifest inspect nousresearch/hermes-agent:v2026.4.23`: PASS
+- `docker manifest inspect searxng/searxng:2026.4.28-ed5955a5c`: PASS
+- Local install simulation with `OPDS_SKIP_START=true DEEPSEEK_API_KEY=sk-test-local OPDS_CN_NET_TIMEOUT=3 bash install-cn.sh`: PASS
+- Current Gitee raw fetch with visible `curl -fL --connect-timeout 10 --max-time 30 ... -o /tmp/opds-gitee-before-push.sh`: PASS
+
+Decisions:
+
+- README and CN docs now recommend visible download to `/tmp/opendeepseek-install-cn.sh`, not `bash -c "$(curl -fsSL ...)"`.
+- CN compose defaults to public working images plus local Bridge build. Future domestic registry images can override `HERMES_IMAGE`, `BRIDGE_IMAGE`, `OPENWEBUI_IMAGE`, and `SEARXNG_IMAGE`.
+- `install-cn.sh` supports `DEEPSEEK_API_KEY=...` non-interactive mode and `OPDS_SKIP_START=true` validation mode.
+- GitCode Git deep probe is opt-in via `OPDS_CN_CHECK_GITCODE=true`; raw URL probe remains part of diagnostics.
+
+Remaining risks:
+
+- Full China Ready still requires publishing domestic ACR/CCR images and OSS/COS offline bundles.
+- Local full CN startup was not run in this pass because existing OpenDeepSeek containers use the same container names.
 
 ## 2026-05-06 - Creator Release Provider And Doctor Pass
 

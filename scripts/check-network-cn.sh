@@ -55,8 +55,15 @@ probe_git() {
   local label="$1"
   local repo="$2"
   local refs=""
+  if [[ "${label}" == "GitCode" && "${OPDS_CN_CHECK_GITCODE:-false}" != "true" ]]; then
+    info "跳过 GitCode Git 深度探测；如需检查，设置 OPDS_CN_CHECK_GITCODE=true。"
+    return 0
+  fi
   if command -v git >/dev/null 2>&1; then
-    refs="$(git ls-remote --heads "${repo}" main master 2>/dev/null || true)"
+    refs="$(GIT_TERMINAL_PROMPT=0 git \
+      -c http.lowSpeedLimit=1 \
+      -c "http.lowSpeedTime=${OPDS_CN_GIT_TIMEOUT:-10}" \
+      ls-remote --heads "${repo}" main master 2>/dev/null || true)"
   fi
   if [[ -n "${refs}" ]]; then
     ok "${label} Git 仓库可达：${repo}"
@@ -89,7 +96,12 @@ probe_url "Gitee raw" "${OPDS_CN_GITEE_RAW:-https://gitee.com/luoxueai/opendeeps
 probe_url "GitCode raw" "${OPDS_CN_GITCODE_RAW:-https://gitcode.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh}"
 probe_url "阿里云 OSS release manifest" "${OPDS_CN_OSS_MANIFEST:-https://opendeepseek-cn.oss-cn-hangzhou.aliyuncs.com/releases/release-cn.json}"
 probe_url "腾讯云 COS release manifest" "${OPDS_CN_COS_MANIFEST:-https://opendeepseek-cn.cos.ap-shanghai.myqcloud.com/releases/release-cn.json}"
-probe_registry "${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}"
+probe_url "Docker Hub Registry" "${OPDS_DOCKER_HUB_REGISTRY:-https://registry-1.docker.io/v2/}"
+if [[ -n "${OPDS_IMAGE_REGISTRY:-}" ]]; then
+  probe_registry "${OPDS_IMAGE_REGISTRY}"
+else
+  info "未设置 OPDS_IMAGE_REGISTRY；当前 CN compose 默认使用已公开上游镜像，国内 ACR/CCR 发布后再切换。"
+fi
 probe_url "清华 PyPI 镜像" "${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
 probe_url "npmmirror" "${NPM_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
 

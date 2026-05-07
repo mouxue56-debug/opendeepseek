@@ -1,17 +1,17 @@
 # OpenDeepSeek CN - docker-compose.cn.yml
-# China-ready compose file for published CN images.
+# China-friendly compose file.
 #
 # This file is intentionally separate from docker-compose.yml:
-# - it uses domestic image registry variables
+# - it keeps Chinese defaults and dependency mirrors
 # - it exposes only Open WebUI by default
 # - Hermes, Bridge, and SearXNG stay on the Docker internal network
 #
-# The default image tags are release placeholders. Before public CN release,
-# publish matching images or override OPDS_IMAGE_REGISTRY/*_VERSION in .env.
+# The defaults are public images that actually exist today. When CN registry
+# images are published, override *_IMAGE in .env instead of editing this file.
 
 services:
   hermes:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/hermes:${HERMES_VERSION:-2026.4.23-opds-cn}
+    image: ${HERMES_IMAGE:-nousresearch/hermes-agent:v2026.4.23}
     container_name: opendeepseek-hermes
     command: gateway run
     environment:
@@ -61,7 +61,9 @@ services:
       - opendeepseek-network
 
   hermes-bridge:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/hermes-bridge:${OPDS_VERSION:-0.5.0-cn}
+    image: ${BRIDGE_IMAGE:-opendeepseek-hermes-bridge:cn-local}
+    build:
+      context: ./bridge
     container_name: opendeepseek-hermes-bridge
     ports:
       # 只给本机浏览器预览产物，不随 BIND_HOST 暴露公网。
@@ -122,7 +124,7 @@ services:
       - opendeepseek-network
 
   open-webui:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/open-webui:${OPENWEBUI_VERSION:-0.9.2-opds-cn}
+    image: ${OPENWEBUI_IMAGE:-openwebui/open-webui:0.9.2}
     container_name: opendeepseek-webui
     ports:
       - "${BIND_HOST:-127.0.0.1}:3000:8080"
@@ -167,7 +169,9 @@ services:
       - opendeepseek-network
 
   searxng:
-    image: ${OPDS_IMAGE_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/opendeepseek}/searxng:${SEARXNG_VERSION:-2026.4.28-opds-cn}
+    image: ${SEARXNG_IMAGE:-searxng/searxng:2026.4.28-ed5955a5c}
+    profiles:
+      - "full"
     container_name: opendeepseek-searxng
     environment:
       - SEARXNG_PORT=8080
