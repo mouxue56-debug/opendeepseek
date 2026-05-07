@@ -32,6 +32,14 @@ if [[ "${1:-}" == "verify" || "${1:-}" == "--verify" ]]; then
     exec python3 scripts/verify_config.py
 fi
 
+if [[ "${1:-}" == "verify-live" || "${1:-}" == "--verify-live" ]]; then
+    if ! command -v python3 &>/dev/null; then
+        echo "❌ verify-live 需要 python3"
+        exit 1
+    fi
+    exec python3 scripts/provider-live-check.py
+fi
+
 if [[ "${1:-}" == "doctor" || "${1:-}" == "--doctor" ]]; then
     if ! command -v python3 &>/dev/null; then
         echo "❌ doctor 需要 python3"

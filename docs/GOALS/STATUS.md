@@ -557,7 +557,7 @@ raw check: https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh
 
 ## 2026-05-07 - Full-Chain OpenClaw Review + Landing Hardening
 
-Status: in progress
+Status: in progress - code hardening implemented; live end-to-end demo is blocked by invalid DeepSeek API key in local `.env`
 
 Sidecars:
 
@@ -584,14 +584,21 @@ What changed:
 - `install-cn.sh` now reports line-level failure context and only treats a repo as reachable if `main` or `master` actually exists.
 - `scripts/check-network-cn.sh` now avoids false-positive Git repo checks by requiring real `main` or `master` refs.
 - Docs now reflect that Gitee raw is active while GitCode, domestic images, and offline bundles remain release follow-ups.
+- Added `./setup.sh verify-live` / `scripts/provider-live-check.py` for real Provider API key, balance, Base URL, and model validation.
 
 Validation so far:
 
 - `bash -n install-cn.sh install-cn.ps1 setup.sh OpenDeepSeek.command scripts/*.sh`: PASS
+- `python3 -m py_compile scripts/provider-live-check.py scripts/verify_config.py scripts/doctor.py bridge/hermes_image_bridge.py`: PASS
 - `python3 scripts/benchmark_routing.py`: PASS - 56/56, F1=1.00
 - `./scripts/health-check.sh`: PASS - `overall=ok`
 - `./scripts/sync-gitee.sh --verify-only`: PASS - Gitee `main=b56d3ed`, raw installer HTTP 200
+- `./setup.sh verify`: PASS - 0 errors, 1 expected SearXNG warning
+- `docker compose config -q`: PASS
+- `docker compose -f docker-compose.cn.yml config -q`: PASS
+- `./setup.sh verify-live`: FAIL as expected with current local `.env` - DeepSeek HTTP 401, configured API key is invalid
+- `./scripts/creator-demo.sh`: FAIL at step 4 for the same DeepSeek HTTP 401; steps 1-3 pass (GitHub sync, Gitee project/raw, Docker stack)
 
 Next:
 
-- Commit changes, push GitHub main, sync Gitee main, run `creator-demo.sh`, then run final `release-gate.sh --full`.
+- Replace the local DeepSeek key via Portal or `.env`, then run `./setup.sh verify-live`, `./scripts/creator-demo.sh`, and `./scripts/release-gate.sh --full`.

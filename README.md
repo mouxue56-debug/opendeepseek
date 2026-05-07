@@ -141,6 +141,12 @@ bash scripts/smoke-test.sh
 
 `verify` 只读检查 `.env`、Docker Compose、端口、`/host` 映射和高输出预算；`doctor` 做一键诊断；`report` 生成脱敏诊断包；`benchmark_routing.py` 离线验证普通问答不会误进 Hermes、真任务不会误走普通聊天。
 
+真实 Provider API Key / 余额 / Base URL 检查：
+
+```bash
+./setup.sh verify-live
+```
+
 统一健康检查：
 
 ```bash
