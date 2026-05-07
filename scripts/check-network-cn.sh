@@ -93,9 +93,17 @@ echo
 
 probe_url "DeepSeek API" "${DEEPSEEK_API_BASE:-https://api.deepseek.com}"
 probe_url "Gitee raw" "${OPDS_CN_GITEE_RAW:-https://gitee.com/luoxueai/opendeepseek/raw/main/install-cn.sh}"
-probe_url "GitCode raw" "${OPDS_CN_GITCODE_RAW:-https://gitcode.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh}"
-probe_url "阿里云 OSS release manifest" "${OPDS_CN_OSS_MANIFEST:-https://opendeepseek-cn.oss-cn-hangzhou.aliyuncs.com/releases/release-cn.json}"
-probe_url "腾讯云 COS release manifest" "${OPDS_CN_COS_MANIFEST:-https://opendeepseek-cn.cos.ap-shanghai.myqcloud.com/releases/release-cn.json}"
+if [[ "${OPDS_CN_CHECK_GITCODE:-false}" == "true" ]]; then
+  probe_url "GitCode raw" "${OPDS_CN_GITCODE_RAW:-https://gitcode.com/mouxue56-debug/opendeepseek/raw/main/install-cn.sh}"
+else
+  info "跳过 GitCode raw 检查；当前国内公开入口使用 Gitee，GitCode 同步后设置 OPDS_CN_CHECK_GITCODE=true。"
+fi
+if [[ "${OPDS_CN_CHECK_RELEASE_MANIFESTS:-false}" == "true" ]]; then
+  probe_url "阿里云 OSS release manifest" "${OPDS_CN_OSS_MANIFEST:-https://opendeepseek-cn.oss-cn-hangzhou.aliyuncs.com/releases/release-cn.json}"
+  probe_url "腾讯云 COS release manifest" "${OPDS_CN_COS_MANIFEST:-https://opendeepseek-cn.cos.ap-shanghai.myqcloud.com/releases/release-cn.json}"
+else
+  info "跳过未发布的 OSS/COS release manifest 检查；发布离线包后设置 OPDS_CN_CHECK_RELEASE_MANIFESTS=true。"
+fi
 probe_url "Docker Hub Registry" "${OPDS_DOCKER_HUB_REGISTRY:-https://registry-1.docker.io/v2/}"
 if [[ -n "${OPDS_IMAGE_REGISTRY:-}" ]]; then
   probe_registry "${OPDS_IMAGE_REGISTRY}"

@@ -28,13 +28,14 @@ set_env() {
 }
 
 set_env HERMES_HOST_DIR "$HOST_DIR"
+set_env OPDS_HOST_DISPLAY_PREFIX "$HOST_DIR"
 
 echo "Full Agent access enabled:"
 echo "  host:      $HOST_DIR"
 echo "  container: /host"
 echo ""
 echo "Restarting Hermes/Open WebUI so Docker remounts the directory..."
-docker compose up -d hermes open-webui
+docker compose up -d hermes hermes-bridge open-webui
 
 echo ""
 echo "Done. In Open WebUI, ask for paths under /host, for example:"

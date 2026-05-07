@@ -94,6 +94,38 @@ set_env_value() {
   fi
 }
 
+env_file_value() {
+  local key="$1"
+  local file="${2:-.env}"
+  [[ -f "${file}" ]] || return 0
+  awk -v key="${key}" '
+    $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      line=$0
+      sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "", line)
+      sub(/[[:space:]]+#.*$/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      gsub(/^"/, "", line)
+      gsub(/"$/, "", line)
+      gsub(/^\047/, "", line)
+      gsub(/\047$/, "", line)
+      value=line
+    }
+    END { print value }
+  ' "${file}"
+}
+
+env_bool() {
+  local key="$1"
+  local default="${2:-false}"
+  local value="${!key:-}"
+  if [[ -z "${value}" ]]; then
+    value="$(env_file_value "${key}")"
+  fi
+  value="${value:-${default}}"
+  value="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+  [[ "${value}" == "true" || "${value}" == "1" || "${value}" == "yes" || "${value}" == "on" ]]
+}
+
 repo_reachable() {
   local repo="$1"
   local refs
@@ -152,6 +184,16 @@ ensure_repo() {
   cd "${INSTALL_DIR}"
 }
 
+normalize_host_dir() {
+  local host_dir="$1"
+  if [[ -z "${host_dir}" || "${host_dir}" == *'${HOME}'* || "${host_dir}" == "./agent-files" ]]; then
+    host_dir="${HOME}/OpenDeepSeek-Agent"
+  elif [[ "${host_dir}" == "~/"* ]]; then
+    host_dir="${HOME}/${host_dir#~/}"
+  fi
+  printf '%s' "${host_dir%/}"
+}
+
 ensure_env() {
   if [[ ! -f .env ]]; then
     cp .env.example.cn .env
@@ -183,11 +225,17 @@ ensure_env() {
     ok "已生成本机随机 HERMES_API_KEY / WEBUI_SECRET_KEY"
   fi
 
-  mkdir -p "${HOME}/OpenDeepSeek-Agent/OpenDeepSeek-Inputs" \
-    "${HOME}/OpenDeepSeek-Agent/OpenDeepSeek-Outputs" \
-    "${HOME}/OpenDeepSeek-Agent/OpenDeepSeek-Memory"
-  set_env_value .env HERMES_HOST_DIR "${HOME}/OpenDeepSeek-Agent"
-  set_env_value .env OPDS_HOST_DISPLAY_PREFIX "${HOME}/OpenDeepSeek-Agent"
+  local host_dir display_prefix
+  host_dir="$(normalize_host_dir "$(env_file_value HERMES_HOST_DIR)")"
+  mkdir -p "${host_dir}/OpenDeepSeek-Inputs" \
+    "${host_dir}/OpenDeepSeek-Outputs" \
+    "${host_dir}/OpenDeepSeek-Memory"
+  set_env_value .env HERMES_HOST_DIR "${host_dir}"
+
+  display_prefix="$(env_file_value OPDS_HOST_DISPLAY_PREFIX)"
+  if [[ -z "${display_prefix}" || "${display_prefix}" == *'${HOME}'* || "${display_prefix}" == "/host" ]]; then
+    set_env_value .env OPDS_HOST_DISPLAY_PREFIX "${host_dir}"
+  fi
 }
 
 load_offline_images() {
@@ -213,8 +261,16 @@ start_stack() {
   log "构建本地 Smart Bridge 镜像"
   docker compose -f docker-compose.cn.yml build hermes-bridge
 
+  local compose_args=(-f docker-compose.cn.yml)
+  if env_bool OPDS_REALTIME_SEARCH_ENABLED false; then
+    compose_args+=(--profile full)
+    log "实时搜索已启用，将启动 SearXNG（full profile）"
+  else
+    log "CN 轻量模式：默认不启动 SearXNG，需要联网搜索时把 .env 里的 OPDS_REALTIME_SEARCH_ENABLED 改成 true"
+  fi
+
   log "启动 OpenDeepSeek CN（只默认暴露 http://localhost:3000）"
-  if docker compose -f docker-compose.cn.yml up -d; then
+  if docker compose "${compose_args[@]}" up -d; then
     ok "OpenDeepSeek CN 已启动"
     echo
     echo "访问：http://localhost:3000"

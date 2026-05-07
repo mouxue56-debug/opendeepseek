@@ -688,6 +688,49 @@ Benchmark artifacts:
   - `site-demo/index.html`
   - `weekly-report.md`
   - `video-script.md`
+
+## 2026-05-07 - 3-Round Multi-Model Debug: CN Lightweight Search + Diagnostics
+
+Status: done - Qwen3.6, Kimi K2.6, and MiMo 2.5 Pro completed three full-chain debug rounds; Codex verified and landed the selected fixes.
+
+Round summary:
+
+- Round 1 found a real CN mismatch: `.env.example.cn` enabled realtime search while `docker-compose.cn.yml` kept SearXNG behind the `full` profile. The same round also found noisy warnings from unpublished GitCode/OSS/COS checks.
+- Round 2 reviewed the first patch and caught a macOS Bash 3.2 compatibility bug in the initial boolean parser. Codex replaced Bash 4 lowercase expansion with portable `tr` parsing and validated shell env, `.env`, and inline-comment paths.
+- Round 3 found no P0/P1 blockers; all three sidecars returned ship-ready/no-blocker guidance.
+
+Changed files:
+
+- `.env.example.cn`
+- `docker-compose.cn.yml`
+- `install-cn.sh`
+- `scripts/enable-full-agent-access.sh`
+- `scripts/check-network-cn.sh`
+- `docs/zh-CN/04-国内网络问题.md`
+- `docs/GOALS/STATUS.md`
+
+What changed:
+
+- CN installs now default to lightweight mode with `OPDS_REALTIME_SEARCH_ENABLED=false`, avoiding SearXNG memory overhead unless the user explicitly enables realtime search.
+- If `OPDS_REALTIME_SEARCH_ENABLED=true` is set in the shell or `.env`, `install-cn.sh` automatically starts Docker Compose with `--profile full` so SearXNG actually runs.
+- `install-cn.sh` now parses boolean `.env` values portably on macOS Bash 3.2, including quoted values and inline comments such as `OPDS_REALTIME_SEARCH_ENABLED=true # comment`.
+- `install-cn.sh` no longer overwrites an existing custom `HERMES_HOST_DIR` / full-agent directory on rerun; it only expands placeholders and keeps the chosen host directory.
+- `scripts/enable-full-agent-access.sh` now writes `OPDS_HOST_DISPLAY_PREFIX` together with `HERMES_HOST_DIR`, and restarts `hermes-bridge` as well as Hermes/Open WebUI so replies show the real local file path.
+- `scripts/check-network-cn.sh` no longer warns by default for unpublished GitCode raw or OSS/COS release manifests; those probes are opt-in through `OPDS_CN_CHECK_GITCODE=true` and `OPDS_CN_CHECK_RELEASE_MANIFESTS=true`.
+- CN docs now explain the lightweight default and how to enable search.
+
+Validation:
+
+- `bash -n install-cn.sh scripts/check-network-cn.sh`: PASS
+- `docker compose -f docker-compose.cn.yml config -q`: PASS
+- `docker compose -f docker-compose.cn.yml --profile full config -q`: PASS
+- `OPDS_CN_NET_TIMEOUT=3 bash scripts/check-network-cn.sh`: PASS - 8 reachable, 0 warnings, 0 failures
+- Fake Docker default install simulation: PASS - lightweight path, no `--profile full`
+- Fake Docker `OPDS_REALTIME_SEARCH_ENABLED=true` simulation: PASS - full profile path includes `--profile full`
+- Fake Docker `.env` inline-comment simulation: PASS - `OPDS_REALTIME_SEARCH_ENABLED=true # comment` triggers full profile
+- Fake Docker custom `HERMES_HOST_DIR` rerun simulation: PASS - custom host/display prefix preserved
+- `./scripts/enable-full-agent-access.sh "$HOME"`: PASS - local runtime remounted `/Users/lauralyu` and Bridge now reports `OPDS_HOST_DISPLAY_PREFIX=/Users/lauralyu`
+- `./scripts/release-gate.sh --full`: PASS - 28 passed, 0 failed, 0 warnings, 0 skipped
   - `desktop-plan.md`
 
 Pushed:
